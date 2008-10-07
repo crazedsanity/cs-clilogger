@@ -41,3 +41,59 @@ our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;passwo
 
 
 
+## Pull in our arguments...
+$myArgs = shift(@ARGV);
+
+
+#print Dumper(@ARGV) ."\n";
+
+$scriptName = shift(@ARGV);
+
+if(!length($scriptName)) {
+	die "FATAL: no script named!\n";
+}
+
+while(@ARGV) {
+	$addThis = shift(@ARGV);
+	if(length($command)) {
+		$command .= " ";
+	}
+	
+	## re-add quotes as needed (this doesn't handle single quotes... problematic?)
+	if($addThis =~ /\s+/) {
+		$addThis = '"'. $addThis .'"';
+	}
+	$command .= $addThis;
+}
+
+$command = $scriptName ." ". $command;
+
+print "MY ARGS: $myArgs\nCOMMAND: $command\n";
+
+
+#------------------------------------------------------------------------------
+sub read_config {
+	# NOTE: this is HARD-CODED
+	%config = {
+		'host'		=> "localhost",
+		'port'		=> "5432",
+		'dbname'	=> 'cli_logger',
+		'user'		=> "cli",
+		'pass'		=> "%%dbPass%%"
+	};
+	
+	return(%config);
+} ## END read_config()
+#------------------------------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------------
+sub connect_db {
+	
+} ## END connect_db()
+#------------------------------------------------------------------------------
+
+
+
+
