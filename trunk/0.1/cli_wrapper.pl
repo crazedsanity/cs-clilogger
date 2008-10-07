@@ -37,38 +37,50 @@ use DBD::Pg;
 
 #$ENV{'DBI_DRIVER'} = 'Pg';
 
-our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
+#our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
+connect_db();
+parse_parameters();
 
 
-
-## Pull in our arguments...
-$myArgs = shift(@ARGV);
-
-
-#print Dumper(@ARGV) ."\n";
-
-$scriptName = shift(@ARGV);
-
-if(!length($scriptName)) {
-	die "FATAL: no script named!\n";
-}
-
-while(@ARGV) {
-	$addThis = shift(@ARGV);
-	if(length($command)) {
-		$command .= " ";
+#------------------------------------------------------------------------------
+sub parse_parameters {
+	
+	## Pull in our arguments...
+	our $internalArgs = shift(@ARGV);
+	
+	## get & check the script name.
+	my $scriptName = shift(@ARGV);
+	if(!length($scriptName)) {
+		die "FATAL: no script named!\n";
 	}
 	
-	## re-add quotes as needed (this doesn't handle single quotes... problematic?)
-	if($addThis =~ /\s+/) {
-		$addThis = '"'. $addThis .'"';
+	## okay, build the command string.
+	our $command = "";
+	while(@ARGV) {
+		my $addThis = shift(@ARGV);
+		if(length($command)) {
+			$command .= " ";
+		}
+		
+		## re-add quotes as needed (attempts to handle single quotes)...
+		if($addThis =~ /\s+/) {
+			if($addThis =~ /"/) {
+				$addThis = "'". $addThis ."'";
+			}
+			else {
+				$addThis = '"'. $addThis .'"';
+			}
+		}
+		$command .= $addThis;
 	}
-	$command .= $addThis;
-}
+	
+	$command = $scriptName ." ". $command;
+	
+	print "MY ARGS: $internalArgs\nCOMMAND: $command\n";
+		
+} ## END parse_parameters()
+#------------------------------------------------------------------------------
 
-$command = $scriptName ." ". $command;
-
-print "MY ARGS: $myArgs\nCOMMAND: $command\n";
 
 
 #------------------------------------------------------------------------------
@@ -90,7 +102,7 @@ sub read_config {
 
 #------------------------------------------------------------------------------
 sub connect_db {
-	
+	our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
 } ## END connect_db()
 #------------------------------------------------------------------------------
 
