@@ -29,3 +29,15 @@
 #	4.) This is how the script is normally run.  All parameters are passed to the script as-is.
 #
 ##
+
+use Date::Parse;
+use Data::Dumper;
+use DBD::Pg;
+
+
+#$ENV{'DBI_DRIVER'} = 'Pg';
+
+our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
+
+
+

@@ -1,0 +1,46 @@
+\l
+drop database _dain_cs_project;
+drop database _test1_1_cs_project;
+drop database __hippie_cs_project;
+drop database __dev_cs_project_v1_2;
+drop database __dev_cs_project;
+drop database __dev2_cs_project;
+\l
+\l
+\c __hippie_cs_project
+\l
+select * from user_table;
+\c live_cs_project
+select * from user_table;
+\c live_cs_project
+select * from user_table;
+\dt
+select * from ht_hitstracker_table;
+select * from ht_hitstracker_table ORDER BY hitstracker_id DESC limit 10;
+select cs_url from ht_hitstracker_table ORDER BY hitstracker_id DESC limit 10;
+select source from ht_hitstracker_table ORDER BY hitstracker_id DESC limit 10;
+select url from ht_hitstracker_table ORDER BY hitstracker_id DESC limit 10;
+select ip,url from ht_hitstracker_table ORDER BY hitstracker_id DESC limit 10;
+select ip,url from ht_hitstracker_table WHERE url like '%blog%' ORDER BY hitstracker_id DESC limit 10;
+create database cli_logger;
+begin;
+\i docs/schema.sql 
+\dt
+abort;
+begin;
+\i docs/schema.sql 
+\dt
+commit;
+\h
+\? CREATE USER 
+\h CREATE USER 
+\h CREATE USER cli ADMIN;
+\h CREATE USER cli WITH LOGIN;
+\h CREATE USER cli;
+\h CREATE USER cli WITH LOGIN;
+\h CREATE USER cli WITH SUPERUSER;
+CREATE USER cli WITH ADMIN;
+CREATE USER cli WITH SUPERUSER;
+\h UPDATE user
+\h SET
+\s update

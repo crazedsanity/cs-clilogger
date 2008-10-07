@@ -21,6 +21,7 @@ CREATE TABLE cli_host_table (
 --
 CREATE TABLE cli_internal_log_table (
 	internal_log_id serial NOT NULL PRIMARY KEY,
+	log_timestamp timestamp NOT NULL DEFAULT NOW(),
 	log_data text NOT NULL
 );
 
@@ -46,8 +47,18 @@ CREATE TABLE cli_log_table (
 	script_id integer NOT NULL REFERENCES cli_script_table(script_id),
 	script_args text,
 	host_id integer NOT NULL REFERENCES cli_host_table(host_id),
-	start_time timestamp NOT NULL DEFAULT NOW,
+	start_time timestamp NOT NULL DEFAULT NOW(),
 	end_time timestamp,
 	output text,
 	exit_code integer
 );
+
+
+--
+-- Create our user (NOTE::: when loading this, the password should be modified
+--		to be whatever is set during setup.
+--
+CREATE USER cli WITH UNENCRYPTED PASSWORD '%%dbPass%%';
+
+
+INSERT INTO cli_internal_log_table (log_data) VALUES ('Database initialized, cli_logger v0.1');
