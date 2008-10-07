@@ -44,6 +44,7 @@ CREATE TABLE cli_script_table (
 CREATE TABLE cli_log_table (
 	log_id serial NOT NULL PRIMARY KEY,
 	script_id integer NOT NULL REFERENCES cli_script_table(script_id),
+	script_args text,
 	host_id integer NOT NULL REFERENCES cli_host_table(host_id),
 	start_time timestamp NOT NULL DEFAULT NOW,
 	end_time timestamp,
