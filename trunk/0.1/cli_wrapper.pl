@@ -149,6 +149,16 @@ sub run_script {
 	print "Script_id=(". $scriptId ."), host_id=(". $hostId .")\n";
 	
 	
+	if($dbh->do("INSERT INTO cli_log_table (script_id, full_command, host_id) "
+		."VALUES ($scriptId, '', $hostId)")) {
+		$logId = $dbh->last_insert_id('pg_global', 'public', 'cli_log_table', 'log_id');
+		
+		print "Log_id=(". $logId .")\n";
+	}
+	else {
+		die "FATAL: unable to log start of script...\n";
+	}
+	
 } ## END run_script()
 #------------------------------------------------------------------------------
 
