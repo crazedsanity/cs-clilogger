@@ -65,6 +65,7 @@ sub parse_parameters {
 		$command .= $addThis;
 	}
 	our $commandArgs = $command;
+	our $fullCommand = $scriptName ." ". $commandArgs;
 	
 	$command = $scriptName ." ". $command;
 	
@@ -148,14 +149,19 @@ sub run_script {
 	
 	print "Script_id=(". $scriptId ."), host_id=(". $hostId .")\n";
 	
+	## Use two single quotes in place of one single quote... because SQL is ghey like that.
+	$dbFullCommand = $fullCommand;
+	$dbFullCommand =~ s/'/''/g;
 	
+	print "dbFullCommand=(". $dbFullCommand .")\n";
 	if($dbh->do("INSERT INTO cli_log_table (script_id, full_command, host_id) "
-		."VALUES ($scriptId, '', $hostId)")) {
+		."VALUES ($scriptId, '". $dbFullCommand ."', $hostId)")) {
 		$logId = $dbh->last_insert_id('pg_global', 'public', 'cli_log_table', 'log_id');
 		
 		print "Log_id=(". $logId .")\n";
 	}
 	else {
+		
 		die "FATAL: unable to log start of script...\n";
 	}
 	
