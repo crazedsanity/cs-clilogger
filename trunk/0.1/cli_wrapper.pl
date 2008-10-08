@@ -16,23 +16,13 @@
 # * Repository Location: $HeadURL$ 
 # * Last Updated:::::::: $Date$
 #
-#
-#
-# PARAMETERS (example script usage):
-#	/usr/bin/perl cli_wrapper.pl ""  myScript.bash param1=x param2=y crazedsanity@users.sourceforge.net
-#    ^^^^^^^^^^^   ^^^^^^^^^^^^  ^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#	  1               2           3                            4
-#
-#	1.) Must be run through Perl; left out of script for portability.
-#	2.) This script.
-#	3.) RESERVED: this is a placeholder for future options for this script.
-#	4.) This is how the script is normally run.  All parameters are passed to the script as-is.
-#
 ##
 
 use Date::Parse;
 use Data::Dumper;
-use DBD::Pg;
+use DBI;
+
+
 
 
 #$ENV{'DBI_DRIVER'} = 'Pg';
@@ -40,6 +30,7 @@ use DBD::Pg;
 #our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
 connect_db();
 parse_parameters();
+run_script();
 
 
 #------------------------------------------------------------------------------
@@ -49,7 +40,7 @@ sub parse_parameters {
 	our $internalArgs = shift(@ARGV);
 	
 	## get & check the script name.
-	my $scriptName = shift(@ARGV);
+	our $scriptName = shift(@ARGV);
 	if(!length($scriptName)) {
 		die "FATAL: no script named!\n";
 	}
@@ -73,6 +64,7 @@ sub parse_parameters {
 		}
 		$command .= $addThis;
 	}
+	our $commandArgs = $command;
 	
 	$command = $scriptName ." ". $command;
 	
@@ -102,10 +94,60 @@ sub read_config {
 
 #------------------------------------------------------------------------------
 sub connect_db {
-	our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
+	# The AutoCommit attribute should always be explicitly set
+	#TODO: call read_config() to get these parameters...
+	our $sth;
+	our $dbh = DBI->connect("dbi:Pg:dbname=cli_logger;user=cli", '', '', {AutoCommit => 1});
+	
+	# For some advanced uses you may need PostgreSQL type values:
+	use DBD::Pg qw(:pg_types);
+	
+	# For asynchronous calls, import the async constants:
+	use DBD::Pg qw(:async);
+	
+	
+	## Log that we connected, for sanity.
+	$dbh->do("INSERT INTO cli_internal_log_table (log_data) VALUES ('Successful connection')");
+	
+	if(!$dbh) {
+		die("FATAL: unable to connect to database...\n");
+	}
+	
 } ## END connect_db()
 #------------------------------------------------------------------------------
 
+
+
+#------------------------------------------------------------------------------
+sub run_sql {
+	$sql = shift(@_);
+	
+	if(length($sql)) {
+		$dbh->do($sql);
+	}
+	else {
+		die "FATAL: run_sql() called without parameters!\n";
+	}
+} ## END run_sql()
+#------------------------------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------------
+sub get_script_id {
+	run_sql("SELECT * FROM cli_script_table WHERE script_name='". $scriptName ."'");
+	print Dumper($sth->fetchall_arrayref());
+} ## END get_script_id()
+#------------------------------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------------
+sub run_script {
+	$myScriptId = get_script_id();
+	#run_sql("INSERT INTO cli_");
+} ## END run_script()
+#------------------------------------------------------------------------------
 
 
 
