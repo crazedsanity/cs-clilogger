@@ -119,21 +119,6 @@ sub connect_db {
 
 
 #------------------------------------------------------------------------------
-sub run_sql {
-	$sql = shift(@_);
-	
-	if(length($sql)) {
-		$data = $dbh->do($sql);
-	}
-	else {
-		die "FATAL: run_sql() called without parameters!\n";
-	}
-} ## END run_sql()
-#------------------------------------------------------------------------------
-
-
-
-#------------------------------------------------------------------------------
 sub get_script_id {
 	($scriptId, $dbScriptName) = $dbh->selectrow_array("SELECT * FROM cli_script_table WHERE script_name='". $scriptName ."'");
 	
@@ -151,7 +136,6 @@ sub get_script_id {
 	}
 	
 	return($retval);
-	#print Dumper($dbh->selectall_arrayref());
 } ## END get_script_id()
 #------------------------------------------------------------------------------
 
@@ -159,10 +143,10 @@ sub get_script_id {
 
 #------------------------------------------------------------------------------
 sub run_script {
-	$myScriptId = get_script_id();
-	#run_sql("INSERT INTO cli_");
+	my $scriptId = get_script_id();
+	my $hostId = get_host_id();
 	
-	print "Script_id=(". $myScriptId .")\n";
+	print "Script_id=(". $scriptId ."), host_id=(". $hostId .")\n";
 	
 	
 } ## END run_script()
@@ -170,3 +154,30 @@ sub run_script {
 
 
 
+#------------------------------------------------------------------------------
+sub get_host_id {
+	if(-e '/bin/hostname') {
+		$host = `/bin/hostname`;
+		chomp($host);
+		
+		## Now see if it's in the database...
+		($hostId, $dbHostname) = $dbh->selectrow_array("SELECT * FROM "
+			."cli_host_table WHERE host_name='". $host ."'");
+		
+		if($hostId > 0) {
+			$retval = $hostId;
+		}
+		else {
+			if(!$dbh->do("INSERT INTO cli_host_table (host_name) VALUES ('". $host ."')")) {
+				die "FATAL: can't get host_id...\n";
+			}
+			$retval = get_host_id();
+		}
+	}
+	else {
+		die "FATAL: can't get hostname...\n";
+	}
+	
+	return($retval);
+} ## END get_host_id()
+#------------------------------------------------------------------------------
