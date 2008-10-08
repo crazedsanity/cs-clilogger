@@ -123,7 +123,7 @@ sub run_sql {
 	$sql = shift(@_);
 	
 	if(length($sql)) {
-		$dbh->do($sql);
+		$data = $dbh->do($sql);
 	}
 	else {
 		die "FATAL: run_sql() called without parameters!\n";
@@ -135,8 +135,23 @@ sub run_sql {
 
 #------------------------------------------------------------------------------
 sub get_script_id {
-	run_sql("SELECT * FROM cli_script_table WHERE script_name='". $scriptName ."'");
-	print Dumper($sth->fetchall_arrayref());
+	($scriptId, $dbScriptName) = $dbh->selectrow_array("SELECT * FROM cli_script_table WHERE script_name='". $scriptName ."'");
+	
+	
+	if($scriptId > 0) {
+		$retval = $scriptId;
+	}
+	else {
+		if(!$dbh->do("INSERT INTO cli_script_table (script_name) VALUES ('". $scriptName ."')")) {
+			die "FATAL: unable to create new script_id\n";
+		}
+		else {
+			$retval = get_script_id();
+		}
+	}
+	
+	return($retval);
+	#print Dumper($dbh->selectall_arrayref());
 } ## END get_script_id()
 #------------------------------------------------------------------------------
 
@@ -146,6 +161,10 @@ sub get_script_id {
 sub run_script {
 	$myScriptId = get_script_id();
 	#run_sql("INSERT INTO cli_");
+	
+	print "Script_id=(". $myScriptId .")\n";
+	
+	
 } ## END run_script()
 #------------------------------------------------------------------------------
 
