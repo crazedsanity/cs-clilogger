@@ -34,7 +34,7 @@ CREATE TABLE cli_internal_log_table (
 --
 CREATE TABLE cli_script_table (
 	script_id serial NOT NULL PRIMARY KEY,
-	script_name text NOT NULL,
+	script_name text NOT NULL UNIQUE,
 	max_run_time integer,
 	average_run_time integer
 );
@@ -45,7 +45,7 @@ CREATE TABLE cli_script_table (
 CREATE TABLE cli_log_table (
 	log_id serial NOT NULL PRIMARY KEY,
 	script_id integer NOT NULL REFERENCES cli_script_table(script_id),
-	script_args text,
+	full_command text NOT NULL,
 	host_id integer NOT NULL REFERENCES cli_host_table(host_id),
 	start_time timestamp NOT NULL DEFAULT NOW(),
 	end_time timestamp,
@@ -58,7 +58,8 @@ CREATE TABLE cli_log_table (
 -- Create our user (NOTE::: when loading this, the password should be modified
 --		to be whatever is set during setup.
 --
-CREATE USER cli WITH UNENCRYPTED PASSWORD '%%dbPass%%';
+--CREATE USER cli WITH UNENCRYPTED PASSWORD '%%dbPass%%';
 
+--GRANT ALL ON SCHEMA public TO cli;
 
 INSERT INTO cli_internal_log_table (log_data) VALUES ('Database initialized, cli_logger v0.1');
