@@ -121,7 +121,7 @@ sub connect_db {
 
 #------------------------------------------------------------------------------
 sub run_sql {
-	my $tbl, $pkey, $retval;
+	my $tbl, my $pkey, my $retval;
 	my $sql = shift(@_);
 	chomp($sql);
 	
@@ -132,7 +132,7 @@ sub run_sql {
 			$pkey = get_table_pkey($tbl);
 			print "run_sql(): key=(". $pkey ."), tbl=(". $tbl .")\n";
 			if(!length($pkey) || !length($tbl)) {
-				die "FATAL: run_sql() failed to retrieve pkey for tbl=(". $tbl .")";
+				die "FATAL: run_sql() failed to retrieve pkey for tbl=(". $tbl .")\n";
 			}
 		}
 		else {
@@ -142,10 +142,10 @@ sub run_sql {
 	
 	if($dbh->do($sql)) {
 		$retval = true;
-		print "run_sql(): length of pkey: (". length($pkey) .")\n";
+		print "run_sql(): length of pkey(". $pkey ."): (". length($pkey) .")\n";
 		if(length($pkey)) {
 			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl, $pkey);
-			print "run_sql(): retrieved last_insert_id=(". $retval .")";
+			print "run_sql(): retrieved last_insert_id=(". $retval .")\n";
 		}
 	}
 	else {
@@ -199,6 +199,17 @@ sub run_script {
 		$logId = $dbh->last_insert_id('pg_global', 'public', 'cli_log_table', 'log_id');
 		
 		print "Log_id=(". $logId .")\n";
+		
+		##
+		## TODO: run the script here (as a separate process so we can check in)
+		##
+		$output = 'This is a test of the...';
+		$output = s/'/''/g;
+		
+		## finalize; set set the end_time, output, and exit_code.
+		$myRes = run_sql("UPDATE cli_log_table SET end_time=NOW(), output='". $output ."', "
+			."exit_code=0 WHERE log_id=". $logId);
+		print "run_script(): result=(". $myRes .")\n";
 	}
 	else {
 		
@@ -212,8 +223,8 @@ sub run_script {
 
 #------------------------------------------------------------------------------
 sub get_host_id {
+	my $host, my $hostId, my $retval;
 	if(-e '/bin/hostname') {
-		my $host, $hostId, $retval;
 		my $host = `/bin/hostname`;
 		chomp($host);
 		
@@ -236,6 +247,7 @@ sub get_host_id {
 		die "FATAL: can't get hostname...\n";
 	}
 	
+	print "get_host_id(): returning (". $retval .")\n";
 	return($retval);
 } ## END get_host_id()
 #------------------------------------------------------------------------------
