@@ -44,6 +44,9 @@ sub parse_parameters {
 	if(!length($scriptName)) {
 		die "FATAL: no script named!\n";
 	}
+	elsif(!-f $scriptName) {
+		die "FATAL: script doesn't exist";
+	}
 	
 	## okay, build the command string.
 	our $command = "";
@@ -203,7 +206,7 @@ sub run_script {
 		##
 		## TODO: run the script here (as a separate process so we can check in)
 		##
-		$output = 'This is a test of the...';
+		$output = `$fullCommand`;
 		$output = s/'/''/g;
 		
 		## finalize; set set the end_time, output, and exit_code.
