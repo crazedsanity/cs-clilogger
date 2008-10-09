@@ -122,15 +122,18 @@ sub connect_db {
 #------------------------------------------------------------------------------
 sub run_sql {
 	my $sql = shift(@_);
-	my $returnInsertedId = shift(@_);
+	chomp($sql);
+	my $returnInsertedId = 0;
 	
-	if(length($returnInsertedId)) {
-		if($sql =~ /^insert into (\w+) \(.+\) values \(/i) {
+	if($sql =~ /^insert /i) {
+		if($sql =~ /^insert into (\S+) \(.+/i) {
+			print "run_sql(): it's an insert::: ". $sql ."\n";
 			my $tbl = $1;
 			my $pkey = get_table_pkey($tbl);
-			if(!length($pkey)) {
+			if(!length($pkey) || !length($tbl)) {
 				die "FATAL: run_sql() failed to retrieve pkey for tbl=(". $tbl .")";
 			}
+			$returnInsertedId = 1;
 		}
 		else {
 			die "FATAL: run_sql() failed to get tableName from::: ". $sql .")\n";
@@ -139,8 +142,8 @@ sub run_sql {
 	
 	if($dbh->do($sql)) {
 		$retval = true;
-		if(length($returnInsertedId)) {
-			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl, $pkey);
+		if($returnInsertedId && length($pkey)) {
+			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl);
 		}
 	}
 	else {
@@ -193,7 +196,6 @@ sub run_script {
 		$logId = $dbh->last_insert_id('pg_global', 'public', 'cli_log_table', 'log_id');
 		
 		print "Log_id=(". $logId .")\n";
-		print "PKEY: (". get_table_pkey('cli_log_table') .")\n";
 	}
 	else {
 		
@@ -208,7 +210,8 @@ sub run_script {
 #------------------------------------------------------------------------------
 sub get_host_id {
 	if(-e '/bin/hostname') {
-		$host = `/bin/hostname`;
+		my $host, $hostId, $retval;
+		my $host = `/bin/hostname`;
 		chomp($host);
 		
 		## Now see if it's in the database...
@@ -219,10 +222,11 @@ sub get_host_id {
 			$retval = $hostId;
 		}
 		else {
-			if(!$dbh->do("INSERT INTO cli_host_table (host_name) VALUES ('". $host ."')")) {
-				die "FATAL: can't get host_id...\n";
+			$hostId = run_sql("INSERT INTO cli_host_table (host_name) VALUES ('". $host ."')");
+			if(!$hostId =~ /[0-9]+/ || $hostId < 1) {
+				die "FATAL: can't get host_id (". $hostId .")...\n";
 			}
-			$retval = get_host_id();
+			$retval = $hostId;
 		}
 	}
 	else {
@@ -238,13 +242,15 @@ sub get_host_id {
 #------------------------------------------------------------------------------
 sub get_table_pkey {
 	my $table = shift(@_);
+	if(!length($table)) {
+		die "get_table_pkey(): no table specified (". $table .")\n";
+	}
 	
 	($retval) = $dbh->primary_key('pg_global', 'public', $table);
-	print "get_table_pkey(): returning:::". Dumper($retval) ."\n\n";
 	if(!$retval =~ /\w{1,}/) {
 		die "FATAL: get_table_pkey(): failed to get valid data (". $retval .")";
 	}
 	
 	return($retval);
-} ## END get_table_pkey90
+} ## END get_table_pkey()
 #------------------------------------------------------------------------------
