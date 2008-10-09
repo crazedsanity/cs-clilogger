@@ -121,19 +121,19 @@ sub connect_db {
 
 #------------------------------------------------------------------------------
 sub run_sql {
+	my $tbl, $pkey, $retval;
 	my $sql = shift(@_);
 	chomp($sql);
-	my $returnInsertedId = 0;
 	
 	if($sql =~ /^insert /i) {
 		if($sql =~ /^insert into (\S+) \(.+/i) {
 			print "run_sql(): it's an insert::: ". $sql ."\n";
-			my $tbl = $1;
-			my $pkey = get_table_pkey($tbl);
+			$tbl = $1;
+			$pkey = get_table_pkey($tbl);
+			print "run_sql(): key=(". $pkey ."), tbl=(". $tbl .")\n";
 			if(!length($pkey) || !length($tbl)) {
 				die "FATAL: run_sql() failed to retrieve pkey for tbl=(". $tbl .")";
 			}
-			$returnInsertedId = 1;
 		}
 		else {
 			die "FATAL: run_sql() failed to get tableName from::: ". $sql .")\n";
@@ -142,13 +142,16 @@ sub run_sql {
 	
 	if($dbh->do($sql)) {
 		$retval = true;
-		if($returnInsertedId && length($pkey)) {
-			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl);
+		print "run_sql(): length of pkey: (". length($pkey) .")\n";
+		if(length($pkey)) {
+			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl, $pkey);
+			print "run_sql(): retrieved last_insert_id=(". $retval .")";
 		}
 	}
 	else {
 		die "FATAL: run_sql() failed to execute statement::: ". $sql ."\n";
 	}
+	print "run_sql(): returning (". $retval .")\n";
 	
 	return($retval);
 } ## END run_sql()
