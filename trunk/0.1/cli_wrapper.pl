@@ -120,6 +120,40 @@ sub connect_db {
 
 
 #------------------------------------------------------------------------------
+sub run_sql {
+	my $sql = shift(@_);
+	my $returnInsertedId = shift(@_);
+	
+	if(length($returnInsertedId)) {
+		if($sql =~ /^insert into (\w+) \(.+\) values \(/i) {
+			my $tbl = $1;
+			my $pkey = get_table_pkey($tbl);
+			if(!length($pkey)) {
+				die "FATAL: run_sql() failed to retrieve pkey for tbl=(". $tbl .")";
+			}
+		}
+		else {
+			die "FATAL: run_sql() failed to get tableName from::: ". $sql .")\n";
+		}
+	}
+	
+	if($dbh->do($sql)) {
+		$retval = true;
+		if(length($returnInsertedId)) {
+			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl, $pkey);
+		}
+	}
+	else {
+		die "FATAL: run_sql() failed to execute statement::: ". $sql ."\n";
+	}
+	
+	return($retval);
+} ## END run_sql()
+#------------------------------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------------
 sub get_script_id {
 	($scriptId, $dbScriptName) = $dbh->selectrow_array("SELECT * FROM cli_script_table WHERE script_name='". $scriptName ."'");
 	
@@ -154,11 +188,12 @@ sub run_script {
 	$dbFullCommand =~ s/'/''/g;
 	
 	print "dbFullCommand=(". $dbFullCommand .")\n";
-	if($dbh->do("INSERT INTO cli_log_table (script_id, full_command, host_id) "
+	if(run_sql("INSERT INTO cli_log_table (script_id, full_command, host_id) "
 		."VALUES ($scriptId, '". $dbFullCommand ."', $hostId)")) {
 		$logId = $dbh->last_insert_id('pg_global', 'public', 'cli_log_table', 'log_id');
 		
 		print "Log_id=(". $logId .")\n";
+		print "PKEY: (". get_table_pkey('cli_log_table') .")\n";
 	}
 	else {
 		
@@ -196,4 +231,20 @@ sub get_host_id {
 	
 	return($retval);
 } ## END get_host_id()
+#------------------------------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------------
+sub get_table_pkey {
+	my $table = shift(@_);
+	
+	($retval) = $dbh->primary_key('pg_global', 'public', $table);
+	print "get_table_pkey(): returning:::". Dumper($retval) ."\n\n";
+	if(!$retval =~ /\w{1,}/) {
+		die "FATAL: get_table_pkey(): failed to get valid data (". $retval .")";
+	}
+	
+	return($retval);
+} ## END get_table_pkey90
 #------------------------------------------------------------------------------
