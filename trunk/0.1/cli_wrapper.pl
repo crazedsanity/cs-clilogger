@@ -272,3 +272,69 @@ sub get_table_pkey {
 	return($retval);
 } ## END get_table_pkey()
 #------------------------------------------------------------------------------
+
+
+
+##-----------------------------------------------------------------------------
+sub handle_fork {
+	
+	# This will (eventually) handle forking one or more processes to run scripts.
+	
+	my $numChildren = 0;
+	my %children;
+	
+	if(!$pid || $pid > 0) {
+		while($numChildren < $maxConnections) {
+			$numChildren++;
+			$pid = fork();
+			
+			if($pid == 0) {
+				#TODO: run script here!
+				
+				exit;
+			}
+			
+			$children{$numChildren}=$pid;
+			print "PARENT (". $pid .")::: spawned pid=(". $pid ."), kid #". $numChildren ."!     \r";
+		}
+	}
+	
+	print "\n";
+	
+		print "Waiting for child processes::: \n";
+		
+		my $childCount = keys(%children);
+		
+		while($childCount > 0) {
+			foreach my $key (keys %children) {
+				$value = $children{$key};
+				
+				if(!$value =~ /^[0-9]{1,}$/) {
+					die "Invalid PID (". $value .")!\n";
+				}
+				
+				$childStatus = waitpid($value, WNOHANG);
+				
+				#print "child #". $key ." (". $value .")=". $childStatus ."(". $? .")    ";
+				if($childStatus > 0) {
+					## Remove the child from our array.
+					delete($children{$key});
+					$childCount--;
+					
+					#print "\n\nPARENT::: child process ". $value ." died (". $childStatus .")... ". time() ."\n";
+				}
+				else {
+					#print keys(%children) ." are still alive....    \r"
+				}
+			}
+			print "\t-- num children (". $childCount .") ". time() ."       \r";
+			
+			## sleep (for less than a second... this is kinda gay).
+			select(undef,undef,undef,.5);
+		}
+		print "\nAll kids dead.\n";
+	
+	die "Done, dying...";
+	
+} ## END handle_fork()
+##-----------------------------------------------------------------------------
