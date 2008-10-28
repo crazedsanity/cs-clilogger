@@ -21,7 +21,7 @@
 use Date::Parse;
 use Data::Dumper;
 use DBI;
-
+use IO::CaptureOutput;
 
 
 
@@ -30,7 +30,7 @@ use DBI;
 #our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
 connect_db();
 parse_parameters();
-run_script();
+handle_fork();
 
 
 #------------------------------------------------------------------------------
@@ -72,7 +72,6 @@ sub parse_parameters {
 	
 	$command = $scriptName ." ". $command;
 	
-	print "MY ARGS: $internalArgs\nCOMMAND: $command\n";
 		
 } ## END parse_parameters()
 #------------------------------------------------------------------------------
@@ -130,10 +129,10 @@ sub run_sql {
 	
 	if($sql =~ /^insert /i) {
 		if($sql =~ /^insert into (\S+) \(.+/i) {
-			print "run_sql(): it's an insert::: ". $sql ."\n";
+			#print "run_sql(): it's an insert::: ". $sql ."\n";
 			$tbl = $1;
 			$pkey = get_table_pkey($tbl);
-			print "run_sql(): key=(". $pkey ."), tbl=(". $tbl .")\n";
+			#print "run_sql(): key=(". $pkey ."), tbl=(". $tbl .")\n";
 			if(!length($pkey) || !length($tbl)) {
 				die "FATAL: run_sql() failed to retrieve pkey for tbl=(". $tbl .")\n";
 			}
@@ -148,13 +147,13 @@ sub run_sql {
 		print "run_sql(): length of pkey(". $pkey ."): (". length($pkey) .")\n";
 		if(length($pkey)) {
 			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl, $pkey);
-			print "run_sql(): retrieved last_insert_id=(". $retval .")\n";
+			#print "run_sql(): retrieved last_insert_id=(". $retval .")\n";
 		}
 	}
 	else {
 		die "FATAL: run_sql() failed to execute statement::: ". $sql ."\n";
 	}
-	print "run_sql(): returning (". $retval .")\n";
+	#print "run_sql(): returning (". $retval .")\n";
 	
 	return($retval);
 } ## END run_sql()
@@ -190,28 +189,23 @@ sub run_script {
 	my $scriptId = get_script_id();
 	my $hostId = get_host_id();
 	
-	print "Script_id=(". $scriptId ."), host_id=(". $hostId .")\n";
-	
 	## Use two single quotes in place of one single quote... because SQL is ghey like that.
 	$dbFullCommand = $fullCommand;
 	$dbFullCommand =~ s/'/''/g;
 	
-	print "dbFullCommand=(". $dbFullCommand .")\n";
 	if(run_sql("INSERT INTO cli_log_table (script_id, full_command, host_id) "
 		."VALUES ($scriptId, '". $dbFullCommand ."', $hostId)")) {
 		$logId = $dbh->last_insert_id('pg_global', 'public', 'cli_log_table', 'log_id');
 		
-		print "Log_id=(". $logId .")\n";
+		## This captures the STDERR and STDOUT separately, so it can be logged as such...
+		($output, $stderr) = IO::CaptureOutput::capture_exec($fullCommand);
+		$output =~ s/'/''/g;
 		
-		##
-		## TODO: run the script here (as a separate process so we can check in)
-		##
-		$output = `$fullCommand`;
-		$output = s/'/''/g;
+		print "EXIT STATUS=(". $? ."), OUTPUT::: ". $output ."\nSTDERR::: ". $stderr ."\n";
 		
 		## finalize; set set the end_time, output, and exit_code.
 		$myRes = run_sql("UPDATE cli_log_table SET end_time=NOW(), output='". $output ."', "
-			."exit_code=0 WHERE log_id=". $logId);
+			."exit_code=". $? ." WHERE log_id=". $logId);
 		print "run_script(): result=(". $myRes .")\n";
 	}
 	else {
@@ -283,13 +277,17 @@ sub handle_fork {
 	my $numChildren = 0;
 	my %children;
 	
+	##for now, hard-code this value...
+	my $maxChildren = 1;
+	
 	if(!$pid || $pid > 0) {
-		while($numChildren < $maxConnections) {
+		while($numChildren < $maxChildren) {
 			$numChildren++;
 			$pid = fork();
 			
 			if($pid == 0) {
 				#TODO: run script here!
+				run_script();
 				
 				exit;
 			}
