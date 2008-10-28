@@ -60,6 +60,12 @@ CREATE TABLE cli_log_table (
 --
 --CREATE USER cli WITH UNENCRYPTED PASSWORD '%%dbPass%%';
 
---GRANT ALL ON SCHEMA public TO cli;
+GRANT ALL ON SCHEMA public TO cli;
+GRANT ALL ON TABLE cli_host_table TO cli;
+GRANT ALL ON TABLE cli_internal_log_table TO cli;
+GRANT ALL ON TABLE cli_log_table TO cli;
+GRANT ALL ON TABLE cli_script_table TO cli;
+
 
 INSERT INTO cli_internal_log_table (log_data) VALUES ('Database initialized, cli_logger v0.1');
+

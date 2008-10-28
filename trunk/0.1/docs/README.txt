@@ -1,5 +1,12 @@
 $Id$
 
+== SETUP ==
+
+For setup instructions, view the file SETUP.txt.
+
+
+== USAGE ==
+
 PARAMETERS (example script usage):
 	/usr/bin/perl cli_wrapper.pl ""  myScript.bash param1=x param2=y crazedsanity@users.sourceforge.net
    ^^^^^^^^^^^   ^^^^^^^^^^^^  ^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
