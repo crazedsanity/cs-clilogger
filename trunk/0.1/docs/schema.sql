@@ -50,6 +50,7 @@ CREATE TABLE cli_log_table (
 	start_time timestamp NOT NULL DEFAULT NOW(),
 	end_time timestamp,
 	output text,
+	errors text,
 	exit_code integer
 );
 

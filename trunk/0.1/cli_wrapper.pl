@@ -127,10 +127,8 @@ sub run_sql {
 	
 	if($sql =~ /^insert /i) {
 		if($sql =~ /^insert into (\S+) \(.+/i) {
-			#print "run_sql(): it's an insert::: ". $sql ."\n";
 			$tbl = $1;
 			$pkey = get_table_pkey($tbl);
-			#print "run_sql(): key=(". $pkey ."), tbl=(". $tbl .")\n";
 			if(!length($pkey) || !length($tbl)) {
 				die "FATAL: run_sql() failed to retrieve pkey for tbl=(". $tbl .")\n";
 			}
@@ -142,16 +140,13 @@ sub run_sql {
 	
 	if($dbh->do($sql)) {
 		$retval = true;
-		print "run_sql(): length of pkey(". $pkey ."): (". length($pkey) .")\n";
 		if(length($pkey)) {
 			$retval = $dbh->last_insert_id('pg_global', 'public', $tbl, $pkey);
-			#print "run_sql(): retrieved last_insert_id=(". $retval .")\n";
 		}
 	}
 	else {
 		die "FATAL: run_sql() failed to execute statement::: ". $sql ."\n";
 	}
-	#print "run_sql(): returning (". $retval .")\n";
 	
 	return($retval);
 } ## END run_sql()
@@ -189,7 +184,7 @@ sub run_script {
 	
 	## Use two single quotes in place of one single quote... because SQL is ghey like that.
 	$dbFullCommand = $fullCommand;
-	$dbFullCommand =~ s/'/''/g;
+	$dbFullCommand = clean_sql_text($dbFullCommand);
 	
 	if(run_sql("INSERT INTO cli_log_table (script_id, full_command, host_id) "
 		."VALUES ($scriptId, '". $dbFullCommand ."', $hostId)")) {
@@ -197,13 +192,15 @@ sub run_script {
 		
 		## This captures the STDERR and STDOUT separately, so it can be logged as such...
 		($output, $stderr) = IO::CaptureOutput::capture_exec($fullCommand);
-		$output =~ s/'/''/g;
 		
-		print "EXIT STATUS=(". $? ."), OUTPUT::: ". $output ."\nSTDERR::: ". $stderr ."\n";
+		## Clean text so it's safe for insertion.
+		$output = clean_sql_text($output);
+		$stderr = clean_sql_text($stderr);
 		
-		## finalize; set set the end_time, output, and exit_code.
+		
+		## finalize; set set the end_time, output, errors, and exit_code.
 		$myRes = run_sql("UPDATE cli_log_table SET end_time=NOW(), output='". $output ."', "
-			."exit_code=". $? ." WHERE log_id=". $logId);
+			."exit_code=". $? .", errors='". $stderr ."' WHERE log_id=". $logId);
 		print "run_script(): result=(". $myRes .")\n";
 	}
 	else {
@@ -333,4 +330,14 @@ sub handle_fork {
 	die "Done, dying...";
 	
 } ## END handle_fork()
+##-----------------------------------------------------------------------------
+
+
+
+##-----------------------------------------------------------------------------
+sub clean_sql_text() {
+	$text = shift(@_);
+	$text =~ s/'/''/g;
+	return($text);
+}#end clean_sql_text()
 ##-----------------------------------------------------------------------------
