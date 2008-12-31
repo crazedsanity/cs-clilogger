@@ -266,30 +266,29 @@ sub handle_fork {
 		}
 	}
 	
-		
-		my $childCount = keys(%children);
-		
-		while($childCount > 0) {
-			foreach my $key (keys %children) {
-				$value = $children{$key};
-				
-				if(!$value =~ /^[0-9]{1,}$/) {
-					die "Invalid PID (". $value .")!\n";
-				}
-				
-				$childStatus = waitpid($value, WNOHANG);
-				
-				#print "child #". $key ." (". $value .")=". $childStatus ."(". $? .")    ";
-				if($childStatus > 0) {
-					## Remove the child from our array.
-					delete($children{$key});
-					$childCount--;
-				}
+	
+	my $childCount = keys(%children);
+	
+	while($childCount > 0) {
+		foreach my $key (keys %children) {
+			$value = $children{$key};
+			
+			if(!$value =~ /^[0-9]{1,}$/) {
+				die "Invalid PID (". $value .")!\n";
 			}
 			
-			## sleep (for less than a second... this is kinda gay).
-			select(undef,undef,undef,.5);
+			$childStatus = waitpid($value, WNOHANG);
+			
+			if($childStatus > 0) {
+				## Remove the child from our array.
+				delete($children{$key});
+				$childCount--;
+			}
 		}
+		
+		## sleep (for half a second).
+		select(undef,undef,undef,.5);
+	}
 	
 	
 } ## END handle_fork()
