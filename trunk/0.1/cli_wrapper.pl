@@ -22,10 +22,6 @@ use DBI;
 use IO::CaptureOutput;
 
 
-
-#$ENV{'DBI_DRIVER'} = 'Pg';
-
-#our $dbi = DBI->connect("dbi:Pg:dbname=cli_logger;host=localhost;user=cli;password=%%dbPass%%");
 connect_db();
 parse_parameters();
 handle_fork();
@@ -72,23 +68,6 @@ sub parse_parameters {
 	
 		
 } ## END parse_parameters()
-#------------------------------------------------------------------------------
-
-
-
-#------------------------------------------------------------------------------
-sub read_config {
-	# NOTE: this is HARD-CODED
-	%config = {
-		'host'		=> "localhost",
-		'port'		=> "5432",
-		'dbname'	=> 'cli_logger',
-		'user'		=> "cli",
-		'pass'		=> "%%dbPass%%"
-	};
-	
-	return(%config);
-} ## END read_config()
 #------------------------------------------------------------------------------
 
 
@@ -201,7 +180,6 @@ sub run_script {
 		## finalize; set set the end_time, output, errors, and exit_code.
 		$myRes = run_sql("UPDATE cli_log_table SET end_time=NOW(), output='". $output ."', "
 			."exit_code=". $? .", errors='". $stderr ."' WHERE log_id=". $logId);
-		print "run_script(): result=(". $myRes .")\n";
 	}
 	else {
 		
@@ -239,7 +217,6 @@ sub get_host_id {
 		die "FATAL: can't get hostname...\n";
 	}
 	
-	print "get_host_id(): returning (". $retval .")\n";
 	return($retval);
 } ## END get_host_id()
 #------------------------------------------------------------------------------
@@ -281,20 +258,14 @@ sub handle_fork {
 			$pid = fork();
 			
 			if($pid == 0) {
-				#TODO: run script here!
 				run_script();
-				
 				exit;
 			}
 			
 			$children{$numChildren}=$pid;
-			print "PARENT (". $pid .")::: spawned pid=(". $pid ."), kid #". $numChildren ."!     \r";
 		}
 	}
 	
-	print "\n";
-	
-		print "Waiting for child processes::: \n";
 		
 		my $childCount = keys(%children);
 		
@@ -313,21 +284,13 @@ sub handle_fork {
 					## Remove the child from our array.
 					delete($children{$key});
 					$childCount--;
-					
-					#print "\n\nPARENT::: child process ". $value ." died (". $childStatus .")... ". time() ."\n";
-				}
-				else {
-					#print keys(%children) ." are still alive....    \r"
 				}
 			}
-			print "\t-- num children (". $childCount .") ". time() ."       \r";
 			
 			## sleep (for less than a second... this is kinda gay).
 			select(undef,undef,undef,.5);
 		}
-		print "\nAll kids dead.\n";
 	
-	die "Done, dying...";
 	
 } ## END handle_fork()
 ##-----------------------------------------------------------------------------
