@@ -1,0 +1,13 @@
+<MAIN svnId="$Id$">
+	<DBCONNECT>
+		<DBTYPE>psql</DBTYPE>
+		<HOST>localhost</HOST>
+		<DBNAME>cli_logger</DBNAME>
+		<USER>postgres</USER>
+		<PASSWORD />
+	</DBCONNECT>
+	<SETTINGS>
+		<TABLEPREFIX>cli_</TABLEPREFIX>
+		<TABLESUFFIX>_table</TABLESUFFIX>
+	</SETTINGS>
+</MAIN>
