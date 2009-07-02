@@ -25,6 +25,9 @@ class cli_logger extends cs_versionAbstract {
 	/** The full command that was performed... */
 	private $fullCommand;
 	
+	/** Internal parameter list */
+	private $internalParams;
+	
 	//-------------------------------------------------------------------------
 	/**
 	 * Handle everything here: if there's something missing, an exception will 
@@ -33,6 +36,9 @@ class cli_logger extends cs_versionAbstract {
 	public function __construct($configFile) {
 		//set the version file location, a VERY important part of this system.
 		$this->set_version_file_location($configFile);
+		
+		$this->gfObj = new cs_globalFunctions;
+		$this->gfObj->debugPrintOpt=1;
 		
 		if(file_exists($configFile)) {
 			$xmlParser = new cs_phpxmlParser(file_get_contents($configFile));
@@ -70,6 +76,19 @@ class cli_logger extends cs_versionAbstract {
 	 * is wrapping).
 	 */
 	private function parse_parameters() {
+		
+		if(count($_SERVER['argv']) >= 3) {
+			$myArgs = $_SERVER['argv'];
+			$thisFile = array_shift($myArgs);
+			$this->internalParameters = array_shift($myArgs);
+			
+			//all that is left in the array is what we refer to as the "full command".
+			$this->fullCommand = $this->gfObj->string_from_array($myArgs, null, ' ');
+			$this->gfObj->debug_print(__METHOD__ .": fullCommand::: ". $this->fullCommand ."\nARRAY::: ". $this->gfObj->debug_print($myArgs,0));
+		}
+		else {
+			throw new exception(__METHOD__ .": not enough arguments");
+		}
 	}//end parse_parameters()
 	//-------------------------------------------------------------------------
 	

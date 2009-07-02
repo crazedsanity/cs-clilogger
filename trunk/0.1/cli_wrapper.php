@@ -1,4 +1,5 @@
 <?php
+// FOR A LIST OF LIMITATIONS, SEE docs/README.txt
 /*
  * Created on Jul 1, 2009
  * 
