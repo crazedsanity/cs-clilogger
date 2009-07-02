@@ -14,13 +14,26 @@
 //TODO: The script's version will become important if this is installed on different hosts, as version numbers might be different...
 //TODO: consider using the cs-webdblogger library for handling ALL logging.
 
+
+function exception_handler(exception $e) {
+	$message = $e->getMessage();
+	
+	if(!preg_match('/FATAL/', $message)) {
+		$message = 'FATAL: '. $message;
+	}
+	echo "\n                ". $message ."\n\n";
+	exit(1);
+}
+
+set_exception_handler('exception_handler');
+
 if(isset($_ENV['LIBDIR'])) {
 	$includePath = $_ENV['LIBDIR'];
 	$requiredLibs = array(
 		'Database Layer (CS-Content:cs_phpDB)'	=> "/cs-content/cs_phpDB.class.php",
 		'Version Parser'						=> "/cs-versionparse/cs_version.abstract.class.php",
 		'Site Config'							=> "/cs-content/cs_siteConfig.class.php",
-		'PHP XML - Parser'						=> "/cs-phpxml/cs-phpxml_parser.class.php"
+		'PHP XML - Parser'						=> "/cs-phpxml/cs_phpxmlParser.class.php"
 	);
 	
 	foreach($requiredLibs as $desc=>$file) {
@@ -29,7 +42,7 @@ if(isset($_ENV['LIBDIR'])) {
 			require_once($fullPath);
 		}
 		else {
-			throw new exception(__FILE__ .": FATAL: required library '". $desc ."' unavailable at [". $fullPath ."]");
+			throw new exception("required library '". $desc ."' unavailable at [". $fullPath ."]");
 		}
 	}
 	
@@ -41,17 +54,12 @@ if(isset($_ENV['LIBDIR'])) {
 		$configFile = dirname(__FILE__) .'/config/wrapper.xml';
 	}
 	else {
-		throw new exception(__FILE__ .": FATAL: couldn't find a config file");
+		throw new exception("couldn't find a config file");
 	}
 }
 else {
-	throw new exception(__FILE__ ." - ". __LINE__ .": failed to locate required 'LIBDIR' environment setting");
+	throw new exception("failed to locate required 'LIBDIR' environment setting");
 }
-
-
-
-// Instantiating the class is all that is needed to get the script to run.
-$obj = new cliWrapper($configFile);
 
 
 
@@ -69,16 +77,15 @@ class cliWrapper extends cs_versionAbstract {
 	 * be thrown and things will stop running.
 	 */
 	public function __construct($configFile) {
+		//set the version file location, a VERY important part of this system.
+		$this->set_version_file_location($configFile);
 		
 		if(file_exists($configFile)) {
-			$xmlParser = new cs_phpxmlParser();
+			$xmlParser = new cs_phpxmlParser(file_get_contents($configFile));
 		}
 		else {
-			throw new exception(__METHOD__ .": FATAL: missing configuration file");
+			throw new exception("missing configuration file");
 		}
-		
-		//set the version file location, a VERY important part of this system.
-		$this->set_version_file_location();
 		
 		$this->parse_parameters();
 		$this->run_script();
@@ -145,6 +152,11 @@ class cliWrapper extends cs_versionAbstract {
 	
 	
 }
+
+
+
+// Instantiating the class is all that is needed to get the script to run.
+$obj = new cliWrapper($configFile);
 
 
 ?>
