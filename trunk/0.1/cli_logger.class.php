@@ -17,7 +17,7 @@
 
 
 
-class cliWrapper extends cs_versionAbstract {
+class cli_logger extends cs_versionAbstract {
 	
 	/** Database object */
 	private $dbObj;
@@ -106,11 +106,5 @@ class cliWrapper extends cs_versionAbstract {
 	
 	
 }
-
-
-
-// Instantiating the class is all that is needed to get the script to run.
-$obj = new cliWrapper($configFile);
-
 
 ?>

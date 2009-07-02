@@ -31,6 +31,7 @@ if(isset($_ENV['LIBDIR'])) {
 	$includePath = $_ENV['LIBDIR'];
 	$requiredLibs = array(
 		'Database Layer (CS-Content:cs_phpDB)'	=> "/cs-content/cs_phpDB.class.php",
+		'x'										=> "/cs-content/cs_globalFunctions.class.php",
 		'Version Parser'						=> "/cs-versionparse/cs_version.abstract.class.php",
 		'Site Config'							=> "/cs-content/cs_siteConfig.class.php",
 		'PHP XML - Parser'						=> "/cs-phpxml/cs_phpxmlParser.class.php"
@@ -64,7 +65,8 @@ else {
 
 
 // Instantiating the class is all that is needed to get the script to run.
-$obj = new cliWrapper($configFile);
+require_once(dirname(__FILE__) .'/cli_logger.class.php');
+$obj = new cli_logger($configFile);
 
 
 ?>
