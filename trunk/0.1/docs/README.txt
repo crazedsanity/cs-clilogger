@@ -18,6 +18,20 @@ PARAMETERS (example script usage):
 	4.) This is how the script is normally run.  All parameters are passed to the script as-is.
 
 
+== LIMITATIONS ==
+
+If the given script is piped to another program, from another program, or if a command is run before/after
+it, those parts won't be logged.   Take the following examples:::
+
+ Logged Command                    ||
+--------------------------------------------------------------------------------
+ /bin/false --test="1"             || php5 ./wrapper.php "" /bin/false --test="1"
+ /bin/false --test="1"             || php5 /home/user/bin/wrapper.php "" /bin/false --test="1" && /bin/true
+ /bin/false --test="1"             || php5 /home/user/bin/wrapper.php "" /bin/false --test="`echo 1`"
+ /bin/false --test="1"             || php /home/$USER/bin/wrapper.php "test=1 x=y" /bin/false
+
+
+
 == Ideas For Future Implementation ==
 
 API for (returns are base64-encoded, possibly encrypted):
