@@ -28,6 +28,12 @@ class cli_logger extends cs_versionAbstract {
 	/** Internal parameter list */
 	private $internalParams;
 	
+	/** Name of the actual script. */
+	private $scriptName;
+	
+	/** Parameters (from the config) used to connect to the database */
+	private $dbParams;
+	
 	//-------------------------------------------------------------------------
 	/**
 	 * Handle everything here: if there's something missing, an exception will 
@@ -39,15 +45,13 @@ class cli_logger extends cs_versionAbstract {
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt=1;
+		$this->gfObj->debugRemoveHr=1;
 		
-		if(file_exists($configFile)) {
-			$xmlParser = new cs_phpxmlParser(file_get_contents($configFile));
-		}
-		else {
+		if(!file_exists($configFile)) {
 			throw new exception("missing configuration file");
 		}
 		
-		$this->parse_parameters();
+		$this->parse_parameters($configFile);
 		$this->run_script();
 	}//end __construct()
 	//-------------------------------------------------------------------------
@@ -59,8 +63,8 @@ class cli_logger extends cs_versionAbstract {
 	 * Run the script here...
 	 */
 	public function run_script() {
-		$scriptId = $this->get_script_id();
 		$hostId = $this->get_host_id();
+		$scriptId = $this->get_script_id();
 		
 		//TODO: call the script here (fork?)
 		
@@ -75,7 +79,7 @@ class cli_logger extends cs_versionAbstract {
 	 * Rip out parameters meant for this wrapper script (vs. the script that it 
 	 * is wrapping).
 	 */
-	private function parse_parameters() {
+	private function parse_parameters($configFile) {
 		
 		if(count($_SERVER['argv']) >= 3) {
 			$myArgs = $_SERVER['argv'];
@@ -84,11 +88,34 @@ class cli_logger extends cs_versionAbstract {
 			
 			//all that is left in the array is what we refer to as the "full command".
 			$this->fullCommand = $this->gfObj->string_from_array($myArgs, null, ' ');
-			$this->gfObj->debug_print(__METHOD__ .": fullCommand::: ". $this->fullCommand ."\nARRAY::: ". $this->gfObj->debug_print($myArgs,0));
+			
+			
+			//TODO: check if an interpreter was used (i.e. "/usr/bin/perl -w ./script.pl")
+			$this->scriptName = $myArgs[0];
+			
+			
 		}
 		else {
 			throw new exception(__METHOD__ .": not enough arguments");
 		}
+		
+		$xmlParser = new cs_phpxmlParser(file_get_contents($configFile));
+		$allData = $xmlParser->get_tree(true);
+		if(isset($allData[$xmlParser->get_root_element()]['DBCONNECT'])) {
+			$dbParams = $allData[$xmlParser->get_root_element()]['DBCONNECT'];
+			$dbType = $dbParams['DBTYPE'];
+			unset($dbParams['DBTYPE']);
+			
+			$params = array();
+			foreach($dbParams as $i=>$v) {
+				$params[strtolower($i)] = $v;
+			}
+			$this->connect_db($dbType, $params);
+		}
+		else {
+			throw new exception(__METHOD__ .": could not find database parameters in config file");
+		}
+		
 	}//end parse_parameters()
 	//-------------------------------------------------------------------------
 	
@@ -98,8 +125,16 @@ class cli_logger extends cs_versionAbstract {
 	/**
 	 * Connect the internal database object.
 	 */
-	private function connect_db() {
-		
+	private function connect_db($dbType, array $params) {
+		try {
+			$this->dbObj = new cs_phpDB($dbType);
+			$this->dbObj->connect($params);
+			
+			$this->gfObj->debug_print(__METHOD__ .": successfully connected to database");
+		}
+		catch(exception $e) {
+			throw new exception(__METHOD__ .": fatal error while connecting database::: ". $e->getMessage());
+		}
 	}//end connect_db()
 	//-------------------------------------------------------------------------
 	
@@ -110,6 +145,33 @@ class cli_logger extends cs_versionAbstract {
 	 * Determine what the ID of the script is (for database logging).
 	 */
 	private function get_script_id() {
+		
+		$scriptName = $this->gfObj->cleanString($this->scriptName,'sql_insert');
+		$sql = "SELECT script_id FROM cli_script_table WHERE script_name='". $scriptName ."'";
+		
+		try {
+			$data = $this->dbObj->run_query($sql);
+			
+			if($data == false) {
+				//no script yet: create one.
+				$sql = "INSERT INTO cli_script_table (script_name) VALUES ('". $scriptName ."')";
+				
+				$scriptId = $this->dbObj->run_insert($sql);
+			}
+			elseif(is_array($data) && count($data) == 1) {
+				$scriptId = $data['script_id'];
+			}
+			else {
+				throw new exception(__METHOD__ .": no data, too much data, or unknown error");
+			}
+		}
+		catch(exception $e) {
+			throw new exception(__METHOD__ .": failed to retrieve script_id for '". $this->scriptName ."'");
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": returning scriptId=(". $scriptId .")");
+		
+		return($scriptId);
 	}//end get_script_id()
 	//-------------------------------------------------------------------------
 	
@@ -120,6 +182,42 @@ class cli_logger extends cs_versionAbstract {
 	 * Get the ID of the host it's running on (for database logging).
 	 */
 	private function get_host_id() {
+		
+		if(file_exists('/bin/hostname')) {
+			$hostname = strtolower(exec('/bin/hostname --long'));
+		}
+		else {
+			throw new exception(__METHOD__ .": unable to determine hostname of machine");
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": hostname=(". $hostname .")");
+		
+		//now let's retrieve the ID associated with that one.
+		try {
+			$sql = "SELECT host_id FROM cli_host_table WHERE host_name='". $hostname ."'";
+			$this->gfObj->debug_print(__METHOD__ .": SQL::: ". $sql);
+			
+			$data = $this->dbObj->run_query($sql);
+			
+			if($data == false) {
+				$sql = "INSERT INTO cli_host_table (host_name) VALUES ('". $hostname ."')";
+				
+				$hostId = $this->dbObj->run_insert($sql);	
+			}
+			elseif(is_array($data) && count($data) == 1) {
+				$hostId = $data['host_id'];
+			}
+			else {
+				throw new exception(__METHOD__ .": invalid data, too much, not enough, or unknown error");
+			}
+		}
+		catch(exception $e) {
+			throw new exception(__METHOD__ .": failed to retrieve/insert host_id for (". $hostname .")... ". $e->getMessage());
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": hostId=(". $hostId .")");
+		
+		return($hostId);
 	}//end get_host_id()
 	//-------------------------------------------------------------------------
 	
