@@ -48,6 +48,7 @@ CREATE TABLE cli_log_table (
 	full_command text NOT NULL,
 	host_id integer NOT NULL REFERENCES cli_host_table(host_id),
 	start_time timestamp NOT NULL DEFAULT NOW(),
+	last_checkin timestamp,
 	end_time timestamp,
 	output text,
 	errors text,
