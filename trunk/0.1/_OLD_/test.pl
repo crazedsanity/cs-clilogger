@@ -9,5 +9,7 @@ for (my $i=0; $i<50000; $i++) {
 }
 print STDOUT __FILE__ .": OUTPUT: '<--Testing data cleansing...\n";
 
+sleep(30);
+
 print STDERR __FILE__ .": Error #2: Script failed (testing)";
 exit 5;
