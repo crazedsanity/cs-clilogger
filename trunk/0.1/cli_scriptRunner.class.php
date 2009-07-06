@@ -65,8 +65,15 @@ class cli_scriptRunner extends multiThreadAbstract {
 		$this->set_max_children(1);
 		$this->spawn();
 		if($this->is_child()) {
-			$this->message_handler(__METHOD__, "I'm just a child... (". $this->get_myPid() ."), parentPid=(". $this->get_parentPid() .")", 'NOTICE');
-			sleep(2);
+			
+			$exitVal = null;
+			$command = $this->csLog->get_full_command();
+			$this->message_handler(__METHOD__, "COMMAND::: ". $command,1);
+			$output = passthru($this->csLog->get_full_command(), $exitVal);
+			$this->message_handler(__METHOD__, "output of command::: ". $output);
+			
+			$this->csLog->log_script_end($output, $exitVal);
+			
 			$this->finished();
 		}
 		elseif($this->is_parent()) {
@@ -83,11 +90,9 @@ class cli_scriptRunner extends multiThreadAbstract {
 				}
 				else {
 					$this->message_handler(__METHOD__, "numChildren=(". $numKids .")");
-					sleep(30);
+					sleep(1);
 				}
 			}
-			
-			$this->csLog->log_script_end('', 0);
 			$this->finished();
 		}
 		else {
@@ -106,7 +111,7 @@ class cli_scriptRunner extends multiThreadAbstract {
 	protected function dead_child_handler($childNum, $qName, $exitStatus) {
 		#$this->gfObj->debug_print($this,1);
 		#$this->csLog->checkin();
-		$this->message_handler(__METHOD__, ": running...");
+		$this->message_handler(__METHOD__, ": running... childNum=(". $childNum ."), qName=(". $qName ."), exitStatus=(". $exitStatus .")");
 	}//end dead_child_handler()
 	//-------------------------------------------------------------------------
 	
