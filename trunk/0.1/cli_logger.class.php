@@ -22,6 +22,9 @@ class cli_logger extends cs_versionAbstract {
 	/** Database object */
 	private $dbObj;
 	
+	/** Database type (for creating dbObj) */
+	private $dbType=null;
+	
 	/** The full command that was performed... */
 	private $fullCommand;
 	
@@ -32,7 +35,7 @@ class cli_logger extends cs_versionAbstract {
 	private $scriptName;
 	
 	/** Parameters (from the config) used to connect to the database */
-	private $dbParams;
+	private $dbParams=null;
 	
 	/** ID we've created the entry under, so we can handle checking in. */
 	private $logId;
@@ -65,14 +68,17 @@ class cli_logger extends cs_versionAbstract {
 	 * Log the script's output here.
 	 */
 	public function log_script_end($output, $returnVal) {
-		
+		if(!$this->dbObj->ping()) {
+			$this->gfObj->debug_print(__METHOD__ .": ping failed, attempting to reconnect");
+			$this->connect_db();
+		}
 		try {
 			$sql = "UPDATE cli_log_table SET end_time=CURRENT_TIMESTAMP, output='" . $this->gfObj->cleanString($output, 'sql') .
 					"', errors='', exit_code=". $returnVal ." WHERE log_id=". $this->logId;
 			$this->dbObj->run_update($sql);
 		}
 		catch(exception $e) {
-			throw new exception("failed to log final output::: ". $e->getMessage());
+			throw new exception("failed to log final output::: ". $e->getMessage() ."\nSQL::: ". $sql);
 		}
 	}//end log_script_end()
 	//-------------------------------------------------------------------------
@@ -115,7 +121,9 @@ class cli_logger extends cs_versionAbstract {
 			foreach($dbParams as $i=>$v) {
 				$params[strtolower($i)] = $v;
 			}
-			$this->connect_db($dbType, $params);
+			$this->dbType = $dbType;
+			$this->dbParams = $params;
+			$this->connect_db();
 		}
 		else {
 			throw new exception(__METHOD__ .": could not find database parameters in config file");
@@ -130,15 +138,20 @@ class cli_logger extends cs_versionAbstract {
 	/**
 	 * Connect the internal database object.
 	 */
-	private function connect_db($dbType, array $params) {
-		try {
-			$this->dbObj = new cs_phpDB($dbType);
-			$this->dbObj->connect($params);
-			
-			$this->gfObj->debug_print(__METHOD__ .": successfully connected to database");
+	private function connect_db() {
+		if(!is_null($this->dbType) && !is_null($this->dbParams) && is_array($this->dbParams)) {
+			try {
+				$this->dbObj = new cs_phpDB($this->dbType);
+				$this->dbObj->connect($this->dbParams, true);
+				
+				$this->gfObj->debug_print(__METHOD__ .": successfully connected to database");
+			}
+			catch(exception $e) {
+				throw new exception(__METHOD__ .": fatal error while connecting database::: ". $e->getMessage());
+			}
 		}
-		catch(exception $e) {
-			throw new exception(__METHOD__ .": fatal error while connecting database::: ". $e->getMessage());
+		else {
+			throw new exception("required items (dbType and dbParams) not set");
 		}
 	}//end connect_db()
 	//-------------------------------------------------------------------------
@@ -230,6 +243,10 @@ class cli_logger extends cs_versionAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function checkin() {
+		if(!$this->dbObj->ping()) {
+			$this->gfObj->debug_print(__METHOD__ .": ping failed, attempting to reconnect");
+			$this->connect_db();
+		}
 		if(!is_numeric($this->logId)) {
 			$hostId = $this->get_host_id();
 			$scriptId = $this->get_script_id();

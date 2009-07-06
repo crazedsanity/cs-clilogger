@@ -23,16 +23,25 @@ class cli_scriptRunner extends multiThreadAbstract {
 	/** Global functions class */
 	protected $gfObj;
 	
+	/** Location of configuration file. */
+	private $configFile;
+	
 	//-------------------------------------------------------------------------
 	/**
 	 * Handle everything here: if there's something missing, an exception will 
 	 * be thrown and things will stop running.
 	 */
 	public function __construct($configFile) {
-		//set the version file location, a VERY important part of this system.
-		$this->set_version_file_location($configFile);
+		
+		$this->configFile = $configFile;
 		
 		$this->csLog = new cli_logger($configFile);
+		
+		//TODO: csLog should have been able to pull the location of the LOCKFILEDIR: pass that to the call below.
+		parent::__construct();
+		
+		//set the version file location, a VERY important part of this system.
+		$this->set_version_file_location($configFile);
 		
 		
 		$this->gfObj = new cs_globalFunctions;
@@ -57,21 +66,33 @@ class cli_scriptRunner extends multiThreadAbstract {
 		$this->spawn();
 		if($this->is_child()) {
 			$this->message_handler(__METHOD__, "I'm just a child... (". $this->get_myPid() ."), parentPid=(". $this->get_parentPid() .")", 'NOTICE');
-			sleep(10);
+			sleep(2);
 			$this->finished();
 		}
 		elseif($this->is_parent()) {
-			$this->message_handler(__METHOD__, "This is the parent... (". $this->get_myPid() .")", 'FATAL');
-			$this->gfObj->debug_print($this,1);
+			while($this->get_num_children() > 0) {
+				try {
+					$this->csLog->checkin();
+				}
+				catch(exception $e) {
+					$this->message_handler(__METHOD__, "IGNORNING exception: ". $e->getMessage());
+				}
+				$numKids = $this->get_num_children();
+				if($numKids < 1) {
+					break;
+				}
+				else {
+					$this->message_handler(__METHOD__, "numChildren=(". $numKids .")");
+					sleep(30);
+				}
+			}
+			
+			$this->csLog->log_script_end('', 0);
 			$this->finished();
 		}
 		else {
 			throw new exception("failed to spawn new thread/fork");
 		}
-		
-		#//TODO: call the script here (fork?)
-		#$returnVal = null;
-		#$output = system($this->fullCommand, $returnVal);
 		
 	}//end run_script()
 	//-------------------------------------------------------------------------
@@ -83,10 +104,11 @@ class cli_scriptRunner extends multiThreadAbstract {
 	 * Required method from the parent class.
 	 */
 	protected function dead_child_handler($childNum, $qName, $exitStatus) {
-		$this->gfObj->debug_print($this,1);
+		#$this->gfObj->debug_print($this,1);
+		#$this->csLog->checkin();
+		$this->message_handler(__METHOD__, ": running...");
 	}//end dead_child_handler()
 	//-------------------------------------------------------------------------
-	
 	
 }
 
