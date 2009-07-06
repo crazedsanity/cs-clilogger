@@ -62,18 +62,10 @@ class cli_logger extends cs_versionAbstract {
 	
 	//-------------------------------------------------------------------------
 	/**
-	 * Run the script here...
+	 * Log the script's output here.
 	 */
-	public function run_script() {
+	public function log_script_end($output, $returnVal) {
 		
-		//log the script's start here...
-		$this->checkin();
-		
-		//TODO: call the script here (fork?)
-		$returnVal = null;
-		$output = system($this->fullCommand, $returnVal);
-		
-		//TODO: log the script's output into the database.
 		try {
 			$sql = "UPDATE cli_log_table SET end_time=CURRENT_TIMESTAMP, output='" . $this->gfObj->cleanString($output, 'sql') .
 					"', errors='', exit_code=". $returnVal ." WHERE log_id=". $this->logId;
@@ -82,7 +74,7 @@ class cli_logger extends cs_versionAbstract {
 		catch(exception $e) {
 			throw new exception("failed to log final output::: ". $e->getMessage());
 		}
-	}//end run_script()
+	}//end log_script_end()
 	//-------------------------------------------------------------------------
 	
 	
