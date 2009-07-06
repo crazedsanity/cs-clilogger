@@ -65,9 +65,8 @@ else {
 
 
 
-// Instantiating the class is all that is needed to get the script to run.
 require_once(dirname(__FILE__) .'/cli_logger.class.php');
 $obj = new cli_logger($configFile);
-
+$obj->run_script();
 
 ?>

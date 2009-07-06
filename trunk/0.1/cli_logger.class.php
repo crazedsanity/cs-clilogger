@@ -34,6 +34,9 @@ class cli_logger extends cs_versionAbstract {
 	/** Parameters (from the config) used to connect to the database */
 	private $dbParams;
 	
+	/** ID we've created the entry under, so we can handle checking in. */
+	private $logId;
+	
 	//-------------------------------------------------------------------------
 	/**
 	 * Handle everything here: if there's something missing, an exception will 
@@ -52,7 +55,6 @@ class cli_logger extends cs_versionAbstract {
 		}
 		
 		$this->parse_parameters($configFile);
-		$this->run_script();
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -63,12 +65,23 @@ class cli_logger extends cs_versionAbstract {
 	 * Run the script here...
 	 */
 	public function run_script() {
-		$hostId = $this->get_host_id();
-		$scriptId = $this->get_script_id();
+		
+		//log the script's start here...
+		$this->checkin();
 		
 		//TODO: call the script here (fork?)
+		$returnVal = null;
+		$output = system($this->fullCommand, $returnVal);
 		
 		//TODO: log the script's output into the database.
+		try {
+			$sql = "UPDATE cli_log_table SET end_time=CURRENT_TIMESTAMP, output='" . $this->gfObj->cleanString($output, 'sql') .
+					"', errors='', exit_code=". $returnVal ." WHERE log_id=". $this->logId;
+			$this->dbObj->run_update($sql);
+		}
+		catch(exception $e) {
+			throw new exception("failed to log final output::: ". $e->getMessage());
+		}
 	}//end run_script()
 	//-------------------------------------------------------------------------
 	
@@ -219,6 +232,42 @@ class cli_logger extends cs_versionAbstract {
 		
 		return($hostId);
 	}//end get_host_id()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function checkin() {
+		if(!is_numeric($this->logId)) {
+			$hostId = $this->get_host_id();
+			$scriptId = $this->get_script_id();
+			$sql = "INSERT INTO cli_log_table (script_id, host_id, full_command, start_time) " .
+					"VALUES (". $scriptId .", ". $hostId .", '". 
+					$this->gfObj->cleanString($this->fullCommand, 'sql_insert') ."', CURRENT_TIMESTAMP)";
+			
+			try {
+				$this->logId = $this->dbObj->run_insert($sql);
+				$checkinResult = true;
+			}
+			catch(exception $e) {
+				throw new exception("failed to do initial checkin::: ". $e->getMessage());
+			}
+		}
+		else {
+			try {
+				$sql = "UPDATE cli_log_table SET last_checkin=CURRENT_TIMESTAMP WHERE log_id=". $this->logId;
+				$this->dbObj->run_update($sql);
+				$checkinResult = true;
+			}
+			catch(exception $e) {
+				throw new exception("failed to perform checkin::: ". $e->getMessage());
+			}
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": done, logId=(". $this->logId .")");
+		
+		return($checkinResult);
+	}//end checkin()
 	//-------------------------------------------------------------------------
 	
 	
