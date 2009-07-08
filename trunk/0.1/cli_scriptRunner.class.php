@@ -38,7 +38,7 @@ class cli_scriptRunner extends multiThreadAbstract {
 		$this->csLog = new cli_logger($configFile);
 		
 		//TODO: csLog should have been able to pull the location of the LOCKFILEDIR: pass that to the call below.
-		parent::__construct();
+		parent::__construct(null, 'test.pl', 1);
 		
 		//set the version file location, a VERY important part of this system.
 		$this->set_version_file_location($configFile);
@@ -48,58 +48,15 @@ class cli_scriptRunner extends multiThreadAbstract {
 		$this->gfObj->debugPrintOpt=1;
 		$this->gfObj->debugRemoveHr=1;
 		
-	}//end __construct()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	/**
-	 * Run the script here...
-	 */
-	public function run_script() {
-		
-		// Log script's initial start here...
+		//if all goes well, everything will be logged by dead_child_handler().
+		$this->set_checkin_delay(5);
+		$this->run_script($this->csLog->get_full_command());
 		$this->csLog->checkin();
 		
-		$this->set_max_children(1);
-		$this->spawn();
-		if($this->is_child()) {
-			
-			$exitVal = null;
-			$command = $this->csLog->get_full_command();
-			$this->message_handler(__METHOD__, "COMMAND::: ". $command,1);
-			$output = passthru($this->csLog->get_full_command(), $exitVal);
-			$this->message_handler(__METHOD__, "output of command::: ". $output);
-			
-			$this->csLog->log_script_end($output, $exitVal);
-			
-			$this->finished();
-		}
-		elseif($this->is_parent()) {
-			while($this->get_num_children() > 0) {
-				try {
-					$this->csLog->checkin();
-				}
-				catch(exception $e) {
-					$this->message_handler(__METHOD__, "IGNORNING exception: ". $e->getMessage());
-				}
-				$numKids = $this->get_num_children();
-				if($numKids < 1) {
-					break;
-				}
-				else {
-					$this->message_handler(__METHOD__, "numChildren=(". $numKids .")");
-					sleep(1);
-				}
-			}
-			$this->finished();
-		}
-		else {
-			throw new exception("failed to spawn new thread/fork");
-		}
+		#$this->message_handler(__METHOD__, "DONE");
+		$this->finished();
 		
-	}//end run_script()
+	}//end __construct()
 	//-------------------------------------------------------------------------
 	
 	
@@ -108,11 +65,17 @@ class cli_scriptRunner extends multiThreadAbstract {
 	/**
 	 * Required method from the parent class.
 	 */
-	protected function dead_child_handler($childNum, $qName, $exitStatus) {
-		#$this->gfObj->debug_print($this,1);
-		#$this->csLog->checkin();
-		$this->message_handler(__METHOD__, ": running... childNum=(". $childNum ."), qName=(". $qName ."), exitStatus=(". $exitStatus .")");
+	protected function dead_child_handler($childNum, $exitStatus, array $output) {
+		$this->message_handler(__METHOD__, ": running... childNum=(". $childNum .")");
 	}//end dead_child_handler()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected function checkin() {
+		$this->message_handler(__METHOD__, "test");
+	}//end checkin()
 	//-------------------------------------------------------------------------
 	
 }

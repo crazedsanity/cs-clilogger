@@ -68,6 +68,4 @@ else {
 require_once(dirname(__FILE__) .'/cli_logger.class.php');
 require_once(dirname(__FILE__) .'/cli_scriptRunner.class.php');
 $obj = new cli_scriptRunner($configFile);
-$obj->run_script();
-
 ?>
