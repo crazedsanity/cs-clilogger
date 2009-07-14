@@ -67,14 +67,15 @@ class cli_logger extends cs_versionAbstract {
 	/**
 	 * Log the script's output here.
 	 */
-	public function log_script_end($output, $returnVal) {
+	public function log_script_end($stdout, $stderr, $returnVal) {
 		if(!$this->dbObj->ping()) {
-			$this->gfObj->debug_print(__METHOD__ .": ping failed, attempting to reconnect");
 			$this->connect_db();
 		}
 		try {
-			$sql = "UPDATE cli_log_table SET end_time=CURRENT_TIMESTAMP, output='" . $this->gfObj->cleanString($output, 'sql') .
-					"', errors='', exit_code=". $returnVal ." WHERE log_id=". $this->logId;
+			$sql = "UPDATE cli_log_table SET end_time=CURRENT_TIMESTAMP, output='" . 
+					$this->gfObj->cleanString($stdout, 'sql') ."', errors='". 
+					$this->gfObj->cleanString($stderr, 'sql') ."', " .
+					"exit_code=". $returnVal ." WHERE log_id=". $this->logId;
 			$this->dbObj->run_update($sql);
 		}
 		catch(exception $e) {
@@ -143,8 +144,6 @@ class cli_logger extends cs_versionAbstract {
 			try {
 				$this->dbObj = new cs_phpDB($this->dbType);
 				$this->dbObj->connect($this->dbParams, true);
-				
-				$this->gfObj->debug_print(__METHOD__ .": successfully connected to database");
 			}
 			catch(exception $e) {
 				throw new exception(__METHOD__ .": fatal error while connecting database::: ". $e->getMessage());
@@ -187,8 +186,6 @@ class cli_logger extends cs_versionAbstract {
 			throw new exception(__METHOD__ .": failed to retrieve script_id for '". $this->scriptName ."'");
 		}
 		
-		$this->gfObj->debug_print(__METHOD__ .": returning scriptId=(". $scriptId .")");
-		
 		return($scriptId);
 	}//end get_script_id()
 	//-------------------------------------------------------------------------
@@ -208,12 +205,9 @@ class cli_logger extends cs_versionAbstract {
 			throw new exception(__METHOD__ .": unable to determine hostname of machine");
 		}
 		
-		$this->gfObj->debug_print(__METHOD__ .": hostname=(". $hostname .")");
-		
 		//now let's retrieve the ID associated with that one.
 		try {
 			$sql = "SELECT host_id FROM cli_host_table WHERE host_name='". $hostname ."'";
-			$this->gfObj->debug_print(__METHOD__ .": SQL::: ". $sql);
 			
 			$data = $this->dbObj->run_query($sql);
 			
@@ -233,8 +227,6 @@ class cli_logger extends cs_versionAbstract {
 			throw new exception(__METHOD__ .": failed to retrieve/insert host_id for (". $hostname .")... ". $e->getMessage());
 		}
 		
-		$this->gfObj->debug_print(__METHOD__ .": hostId=(". $hostId .")");
-		
 		return($hostId);
 	}//end get_host_id()
 	//-------------------------------------------------------------------------
@@ -244,7 +236,6 @@ class cli_logger extends cs_versionAbstract {
 	//-------------------------------------------------------------------------
 	public function checkin() {
 		if(!$this->dbObj->ping()) {
-			$this->gfObj->debug_print(__METHOD__ .": ping failed, attempting to reconnect");
 			$this->connect_db();
 		}
 		if(!is_numeric($this->logId)) {
@@ -272,8 +263,6 @@ class cli_logger extends cs_versionAbstract {
 				throw new exception("failed to perform checkin::: ". $e->getMessage());
 			}
 		}
-		
-		$this->gfObj->debug_print(__METHOD__ .": done, logId=(". $this->logId .")");
 		
 		return($checkinResult);
 	}//end checkin()

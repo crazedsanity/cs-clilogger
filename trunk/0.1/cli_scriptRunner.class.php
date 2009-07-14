@@ -53,7 +53,6 @@ class cli_scriptRunner extends multiThreadAbstract {
 		$this->run_script($this->csLog->get_full_command());
 		$this->csLog->checkin();
 		
-		#$this->message_handler(__METHOD__, "DONE");
 		$this->finished();
 		
 	}//end __construct()
@@ -67,6 +66,7 @@ class cli_scriptRunner extends multiThreadAbstract {
 	 */
 	protected function dead_child_handler($childNum, $exitStatus, array $output) {
 		$this->message_handler(__METHOD__, ": running... childNum=(". $childNum .")");
+		$this->csLog->log_script_end($output['stdout'], $output['stderr'], $exitStatus);
 	}//end dead_child_handler()
 	//-------------------------------------------------------------------------
 	
@@ -74,7 +74,7 @@ class cli_scriptRunner extends multiThreadAbstract {
 	
 	//-------------------------------------------------------------------------
 	protected function checkin() {
-		$this->message_handler(__METHOD__, "test");
+		$this->csLog->checkin();
 	}//end checkin()
 	//-------------------------------------------------------------------------
 	
