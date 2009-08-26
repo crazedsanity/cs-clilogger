@@ -38,7 +38,7 @@ class cli_scriptRunner extends multiThreadAbstract {
 		$this->csLog = new cli_logger($configFile);
 		
 		//TODO: csLog should have been able to pull the location of the LOCKFILEDIR: pass that to the call below.
-		parent::__construct(null, 'test.pl', 1);
+		parent::__construct(dirname(__FILE__) .'/../../rw/', 'test.pl', 1);
 		
 		//set the version file location, a VERY important part of this system.
 		$this->set_version_file_location($configFile);

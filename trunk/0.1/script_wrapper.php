@@ -29,13 +29,15 @@ function exception_handler(exception $e) {
 set_exception_handler('exception_handler');
 
 if(isset($_ENV['LIBDIR'])) {
+	if(!defined('LIBDIR')) {
+		define('LIBDIR', $_ENV['LIBDIR']);
+	}
 	$includePath = $_ENV['LIBDIR'];
 	$requiredLibs = array(
-		'Database Layer (CS-Content:cs_phpDB)'	=> "/cs-content/cs_phpDB.class.php",
-		'Global Functions'						=> "/cs-content/cs_globalFunctions.class.php",
-		'Version Parser'						=> "/cs-versionparse/cs_version.abstract.class.php",
-		'Site Config'							=> "/cs-content/cs_siteConfig.class.php",
-		'PHP XML - Parser'						=> "/cs-phpxml/cs_phpxmlParser.class.php"
+		'Database Layer (CS-WebAppLibs:cs_phpDB)'	=> "/cs-webapplibs/cs_phpDB.class.php",
+		'Global Functions'							=> "/cs-content/cs_globalFunctions.class.php",
+		'Site Config (CS-WebAppLibs:cs_siteConfig)'	=> "/cs-webapplibs/cs_siteConfig.class.php",
+		'PHP XML - Parser'							=> "/cs-phpxml/cs_phpxmlParser.class.php"
 	);
 	
 	foreach($requiredLibs as $desc=>$file) {
