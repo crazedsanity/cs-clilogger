@@ -31,18 +31,12 @@ class cli_scriptRunner extends multiThreadAbstract {
 	 * Handle everything here: if there's something missing, an exception will 
 	 * be thrown and things will stop running.
 	 */
-	public function __construct($configFile) {
+	public function __construct() {
 		
-		$this->configFile = $configFile;
-		
-		$this->csLog = new cli_logger($configFile);
+		$this->csLog = new cli_logger();
 		
 		//TODO: csLog should have been able to pull the location of the LOCKFILEDIR: pass that to the call below.
 		parent::__construct(dirname(__FILE__) .'/../../rw/', 'test.pl', 1);
-		
-		//set the version file location, a VERY important part of this system.
-		$this->set_version_file_location($configFile);
-		
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt=1;

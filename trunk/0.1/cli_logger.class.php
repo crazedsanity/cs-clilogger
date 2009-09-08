@@ -20,44 +20,40 @@
 class cli_logger extends cs_versionAbstract {
 	
 	/** Database object */
-	private $dbObj;
+	protected $dbObj;
 	
 	/** Database type (for creating dbObj) */
-	private $dbType=null;
+	protected $dbType=null;
 	
 	/** The full command that was performed... */
-	private $fullCommand;
+	protected $fullCommand;
 	
 	/** Internal parameter list */
-	private $internalParams;
+	protected $internalParams;
 	
 	/** Name of the actual script. */
-	private $scriptName;
+	protected $scriptName;
 	
 	/** Parameters (from the config) used to connect to the database */
-	private $dbParams=null;
+	protected $dbParams=null;
 	
 	/** ID we've created the entry under, so we can handle checking in. */
-	private $logId;
+	protected $logId;
 	
 	//-------------------------------------------------------------------------
 	/**
 	 * Handle everything here: if there's something missing, an exception will 
 	 * be thrown and things will stop running.
 	 */
-	public function __construct($configFile) {
+	public function __construct() {
 		//set the version file location, a VERY important part of this system.
-		$this->set_version_file_location($configFile);
+		$this->set_version_file_location(dirname(__FILE__) .'/VERSION');
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt=1;
 		$this->gfObj->debugRemoveHr=1;
 		
-		if(!file_exists($configFile)) {
-			throw new exception("missing configuration file");
-		}
-		
-		$this->parse_parameters($configFile);
+		$this->parse_parameters();
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -81,6 +77,7 @@ class cli_logger extends cs_versionAbstract {
 		catch(exception $e) {
 			throw new exception("failed to log final output::: ". $e->getMessage() ."\nSQL::: ". $sql);
 		}
+		return($this->logId);
 	}//end log_script_end()
 	//-------------------------------------------------------------------------
 	
@@ -91,7 +88,7 @@ class cli_logger extends cs_versionAbstract {
 	 * Rip out parameters meant for this wrapper script (vs. the script that it 
 	 * is wrapping).
 	 */
-	private function parse_parameters($configFile) {
+	protected function parse_parameters() {
 		
 		if(count($_SERVER['argv']) >= 3) {
 			$myArgs = $_SERVER['argv'];
@@ -111,24 +108,17 @@ class cli_logger extends cs_versionAbstract {
 			throw new exception(__METHOD__ .": not enough arguments");
 		}
 		
-		$xmlParser = new cs_phpxmlParser(file_get_contents($configFile));
-		$allData = $xmlParser->get_tree(true);
-		if(isset($allData[$xmlParser->get_root_element()]['DBCONNECT'])) {
-			$dbParams = $allData[$xmlParser->get_root_element()]['DBCONNECT'];
-			$dbType = $dbParams['DBTYPE'];
-			unset($dbParams['DBTYPE']);
-			
-			$params = array();
-			foreach($dbParams as $i=>$v) {
-				$params[strtolower($i)] = $v;
-			}
-			$this->dbType = $dbType;
-			$this->dbParams = $params;
-			$this->connect_db();
-		}
-		else {
-			throw new exception(__METHOD__ .": could not find database parameters in config file");
-		}
+		$this->dbParams = array(
+			'host'		=> constant('CLI_DB_HOST'),
+			'port'		=> constant('CLI_DB_PORT'),
+			'dbname'	=> constant('CLI_DB_DBNAME'),
+			'user'		=> constant('CLI_DB_USER'),
+			'password'	=> constant('CLI_DB_PASSWORD')
+		);
+		
+		$this->dbType = constant('CLI_DBTYPE');
+		
+		$this->connect_db();
 		
 	}//end parse_parameters()
 	//-------------------------------------------------------------------------
@@ -139,7 +129,7 @@ class cli_logger extends cs_versionAbstract {
 	/**
 	 * Connect the internal database object.
 	 */
-	private function connect_db() {
+	protected function connect_db() {
 		if(!is_null($this->dbType) && !is_null($this->dbParams) && is_array($this->dbParams)) {
 			try {
 				$this->dbObj = new cs_phpDB($this->dbType);
@@ -161,7 +151,7 @@ class cli_logger extends cs_versionAbstract {
 	/**
 	 * Determine what the ID of the script is (for database logging).
 	 */
-	private function get_script_id() {
+	protected function get_script_id() {
 		
 		$scriptName = $this->gfObj->cleanString($this->scriptName,'sql_insert');
 		$sql = "SELECT script_id FROM cli_script_table WHERE script_name='". $scriptName ."'";
@@ -173,7 +163,7 @@ class cli_logger extends cs_versionAbstract {
 				//no script yet: create one.
 				$sql = "INSERT INTO cli_script_table (script_name) VALUES ('". $scriptName ."')";
 				
-				$scriptId = $this->dbObj->run_insert($sql);
+				$scriptId = $this->dbObj->run_insert($sql, 'cli_script_table_script_id_seq');
 			}
 			elseif(is_array($data) && count($data) == 1) {
 				$scriptId = $data['script_id'];
@@ -183,7 +173,7 @@ class cli_logger extends cs_versionAbstract {
 			}
 		}
 		catch(exception $e) {
-			throw new exception(__METHOD__ .": failed to retrieve script_id for '". $this->scriptName ."'");
+			throw new exception(__METHOD__ .": failed to retrieve script_id for '". $this->scriptName ."'::: ". $e->getMessage());
 		}
 		
 		return($scriptId);
@@ -196,7 +186,7 @@ class cli_logger extends cs_versionAbstract {
 	/**
 	 * Get the ID of the host it's running on (for database logging).
 	 */
-	private function get_host_id() {
+	protected function get_host_id() {
 		
 		if(file_exists('/bin/hostname')) {
 			$hostname = strtolower(exec('/bin/hostname --long'));
@@ -214,7 +204,7 @@ class cli_logger extends cs_versionAbstract {
 			if($data == false) {
 				$sql = "INSERT INTO cli_host_table (host_name) VALUES ('". $hostname ."')";
 				
-				$hostId = $this->dbObj->run_insert($sql);	
+				$hostId = $this->dbObj->run_insert($sql, 'cli_host_table_host_id_seq');	
 			}
 			elseif(is_array($data) && count($data) == 1) {
 				$hostId = $data['host_id'];
@@ -246,7 +236,7 @@ class cli_logger extends cs_versionAbstract {
 					$this->gfObj->cleanString($this->fullCommand, 'sql_insert') ."', CURRENT_TIMESTAMP)";
 			
 			try {
-				$this->logId = $this->dbObj->run_insert($sql);
+				$this->logId = $this->dbObj->run_insert($sql, 'cli_log_table_log_id_seq');
 				$checkinResult = true;
 			}
 			catch(exception $e) {
