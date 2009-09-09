@@ -33,10 +33,26 @@ class testOfCSCLILogger extends UnitTestCase {
 		$this->cli = new _test_cliIntermediary();
 		
 		//load schema.
-		$schemaFile = dirname(__FILE__) .'/../docs/schema.'. $this->cli->dbType .'.sql';
+		$schemaFile = dirname(__FILE__) .'/../schema/schema.'. $this->cli->dbType .'.sql';
 		if($this->assertTrue(file_exists($schemaFile))) {
-			$this->cli->dbObj->run_update("CREATE USER cli", true);
-			$this->cli->dbObj->run_update(file_get_contents($schemaFile), true);
+			//if there are tables or a user already, make sure they get dropped.
+			$preUpdates = array(
+				"DROP TABLE cli_host_table, cli_internal_log_table, cli_log_table, cli_script_table cascade",
+				"REVOKE ALL ON SCHEMA public FROM cli",
+				"DROP ROLE IF EXISTS cli;"
+			);
+			foreach($preUpdates as $sql) {
+				try {
+					$this->cli->dbObj->run_update($sql, true);
+				}
+				catch(exception $e) {
+					//
+					$this->gfObj->debug_print(__METHOD__ ." [NOTICE]: pre statement failed ::: ". $e->getMessage());
+				}
+			}
+			$this->cli->doTrans();
+			$this->assertFalse($this->cli->dbObj->run_update("CREATE USER cli", true));
+			$this->assertTrue($this->cli->dbObj->run_update(file_get_contents($schemaFile), true));
 		}
 		else {
 			throw new exception(__METHOD__ .": schema file missing (". $schemaFile .")");
@@ -73,8 +89,13 @@ class testOfCSCLILogger extends UnitTestCase {
 class _test_cliIntermediary extends cli_logger {
 	public function __construct() {
 		parent::__construct();
-		$this->dbObj->beginTrans();
+		//$this->dbObj->beginTrans();
 	}//end __construct()
+	
+	
+	public function doTrans() {
+		$this->dbObj->beginTrans();
+	}//end doTrans()
 	
 	
 	public function get_script_id() {
