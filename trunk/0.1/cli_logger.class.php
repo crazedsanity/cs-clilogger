@@ -214,7 +214,13 @@ class cli_logger extends cs_versionAbstract {
 			}
 		}
 		catch(exception $e) {
-			throw new exception(__METHOD__ .": failed to retrieve/insert host_id for (". $hostname .")... ". $e->getMessage());
+			if(preg_match('/doesn\'t exist/', $e->getMessage()) || preg_match('/does not exist/', $e->getMessage())) {
+				$this->load_schema();
+				$hostId = $this->get_host_id();
+			}
+			else {
+				throw new exception(__METHOD__ .": failed to retrieve/insert host_id for (". $hostname .")... ". $e->getMessage());
+			}
 		}
 		
 		return($hostId);
@@ -264,6 +270,31 @@ class cli_logger extends cs_versionAbstract {
 	public function get_full_command() {
 		return($this->fullCommand);
 	}//end get_full_command()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected function load_schema() {
+		if($this->dbObj->get_dbtype() == 'pgsql') {
+			$schemaFile = dirname(__FILE__) .'/schema/schema.'. $this->dbObj->get_dbtype() .'.sql';
+			if(file_exists($schemaFile)) {
+				try {
+					$this->dbObj->run_update("CREATE ROLE cli");
+				}
+				catch(exception $e) {
+					//its okay if this didn't work.
+				}
+				$this->dbObj->run_update(file_get_contents($schemaFile), true);
+			}
+			else {
+				throw new exception(__METHOD__ .": attempted to load schema but could not locate schema file (". $schemaFile .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": cannot autoload schema into database type (". $this->dbObj->get_dbtype() .")");
+		}
+	}//end load_schema()
 	//-------------------------------------------------------------------------
 	
 	
