@@ -36,7 +36,18 @@ class cli_scriptRunner extends multiThreadAbstract {
 		$this->csLog = new cli_logger();
 		
 		//TODO: csLog should have been able to pull the location of the LOCKFILEDIR: pass that to the call below.
-		parent::__construct(dirname(__FILE__) .'/../../rw/', 'test.pl', 1);
+		//TODO: root path should be configurable.
+		//TODO: find a good way to determine script name when prefixed with interpretter (i.e. "perl test.pl").
+		
+		$args = $this->csLog->parse_parameters();
+		
+		$myScriptName = $args[0];
+		if(preg_match('/php$/', $args[0]) || preg_match('/php5$/', $args[0]) || preg_match('/phpcgi$/', $args[0])) {
+			$myScriptName = $args[0] . ' '. $args[1];
+		}
+		
+		$myScriptName = preg_replace('/[^aA-zZ0-9.-]/', '_', $myScriptName);
+		parent::__construct(dirname(__FILE__) .'/../../rw/', $myScriptName, 1);
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt=1;

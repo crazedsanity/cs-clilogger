@@ -54,6 +54,7 @@ class cli_logger extends cs_versionAbstract {
 		$this->gfObj->debugRemoveHr=1;
 		
 		$this->parse_parameters();
+		$this->connect_db();
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -88,7 +89,7 @@ class cli_logger extends cs_versionAbstract {
 	 * Rip out parameters meant for this wrapper script (vs. the script that it 
 	 * is wrapping).
 	 */
-	protected function parse_parameters() {
+	public function parse_parameters() {
 		
 		if(count($_SERVER['argv']) >= 3) {
 			$myArgs = $_SERVER['argv'];
@@ -101,7 +102,6 @@ class cli_logger extends cs_versionAbstract {
 			
 			//TODO: check if an interpreter was used (i.e. "/usr/bin/perl -w ./script.pl")
 			$this->scriptName = $myArgs[0];
-			
 			
 		}
 		else {
@@ -118,8 +118,7 @@ class cli_logger extends cs_versionAbstract {
 		
 		$this->dbType = constant('CLI_DBTYPE');
 		
-		$this->connect_db();
-		
+		return($myArgs);		
 	}//end parse_parameters()
 	//-------------------------------------------------------------------------
 	
