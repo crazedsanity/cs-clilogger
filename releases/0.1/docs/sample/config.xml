@@ -1,7 +1,0 @@
-<config>
-	<host>localhost</host>
-	<dbname>cli_logger</dbname>
-	<port>5432</port>
-	<username>cli</username>
-	<password>%%dbPass%%</password>
-</config>
