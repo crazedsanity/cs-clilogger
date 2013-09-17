@@ -1,4 +1,2 @@
-$Id$
-
-VERSION: 0.1
-$HeadURL$
+VERSION: 0.1.1
+PROJECT: cs-clilogger
