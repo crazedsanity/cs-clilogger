@@ -131,8 +131,9 @@ class cli_logger extends cs_versionAbstract {
 	protected function connect_db() {
 		if(!is_null($this->dbType) && !is_null($this->dbParams) && is_array($this->dbParams)) {
 			try {
-				$this->dbObj = new cs_phpDB($this->dbType);
-				$this->dbObj->connect($this->dbParams, true);
+				$dsn = $this->dbType .':host='. $this->dbParams['host'] .';dbname='. $this->dbParams['dbname'] .';port='. $this->dbParams['port'];
+				$this->dbObj = new cs_phpDB($dsn, $this->dbParams['user'], $this->dbParams['password']);
+				//$this->dbObj->connect($this->dbParams, true);
 			}
 			catch(exception $e) {
 				throw new exception(__METHOD__ .": fatal error while connecting database::: ". $e->getMessage());

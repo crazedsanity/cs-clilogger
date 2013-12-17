@@ -2,14 +2,6 @@
 // FOR A LIST OF LIMITATIONS, SEE docs/README.txt
 /*
  * Created on Jul 1, 2009
- * 
- * SVN INFORMATION:::
- * ------------------
- * SVN Signature::::::: $Id$
- * Last Author::::::::: $Author$ 
- * Current Revision:::: $Revision$
- * Repository Location: $HeadURL$ 
- * Last Updated:::::::: $Date$
  */
 
 //TODO: The script's version will become important if this is installed on different hosts, as version numbers might be different...
@@ -41,7 +33,10 @@ $tryThese = array(
 	'rw/siteConfig.xml',
 	'rw/config.xml',
 	'config/siteConfig.xml',
-	'config/config.xml'
+	'config/config.xml',
+	'conf/siteconfig.xml',
+	'conf/siteConfig.xml',
+	'conf/config.xml',
 );
 foreach($tryThese as $pathPart) {
 	if(file_exists($baseDir .'/'. $pathPart)) {
@@ -53,6 +48,9 @@ foreach($tryThese as $pathPart) {
 if(is_null($siteConfig)) {
 	throw new exception("FATAL: unable to locate cs_siteConfig or a config file (". $configFile .")...");
 }
+
+#cs_global::debug_print($siteConfig->get_section('cs-clilogger'),1);
+
 
 if(!defined('LIBDIR') && isset($_ENV['LIBDIR'])) {
 	define('LIBDIR', $_ENV['LIBDIR']);

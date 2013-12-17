@@ -1,21 +1,10 @@
 <?php
 /*
  * Created on Jul 1, 2009
- * 
- * SVN INFORMATION:::
- * ------------------
- * SVN Signature::::::: $Id$
- * Last Author::::::::: $Author$ 
- * Current Revision:::: $Revision$
- * Repository Location: $HeadURL$ 
- * Last Updated:::::::: $Date$
  */
 
 
-require_once(dirname(__FILE__) ."/../cs-multithread/multiThread.abstract.class.php");
-
-
-class cli_scriptRunner extends multiThreadAbstract {
+class cli_scriptRunner extends cs_multiProcAbstract {
 	
 	/** Logging system */
 	private $csLog;
