@@ -4,7 +4,7 @@
  */
 
 
-class cli_scriptRunner extends cs_multiProcAbstract {
+class cli_scriptRunner {
 	
 	/** Logging system */
 	private $csLog;
@@ -36,18 +36,31 @@ class cli_scriptRunner extends cs_multiProcAbstract {
 		}
 		
 		$myScriptName = preg_replace('/[^aA-zZ0-9.-]/', '_', $myScriptName);
-		parent::__construct(dirname(__FILE__) .'/../../rw/', $myScriptName, 1);
+//		parent::__construct(dirname(__FILE__) .'/../../rw/', $myScriptName, 1);
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt=1;
 		$this->gfObj->debugRemoveHr=1;
 		
-		//if all goes well, everything will be logged by dead_child_handler().
-		$this->set_checkin_delay(5);
-		$this->run_script($this->csLog->get_full_command());
-		$this->csLog->checkin();
 		
-		$this->finished();
+		$process = new cs_SingleProcess($this->csLog->get_full_command());
+		//$process->run();
+		
+		print_r($process);
+		print_r($process->getStatus());
+		
+		sleep(1);
+		while($process->isActive()) {
+			echo $process->listen();
+			sleep(1);
+		}
+		
+//		//if all goes well, everything will be logged by dead_child_handler().
+//		$this->set_checkin_delay(5);
+//		$this->run_script($this->csLog->get_full_command());
+//		$this->csLog->checkin();
+		
+//		$this->finished();
 		
 	}//end __construct()
 	//-------------------------------------------------------------------------

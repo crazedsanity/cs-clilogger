@@ -1,69 +1,60 @@
 <?php
-// FOR A LIST OF LIMITATIONS, SEE docs/README.txt
-/*
- * Created on Jul 1, 2009
- */
-
-//TODO: The script's version will become important if this is installed on different hosts, as version numbers might be different...
-//TODO: consider using the cs-webdblogger library for handling ALL logging.
 
 
-function exception_handler(exception $e) {
-	$message = $e->getMessage();
-	
-	if(!preg_match('/FATAL/', $message)) {
-		$message = 'FATAL: '. $message;
-	}
-	echo "\n                ". $message ."\n\n";
-	exit(1);
+$E_BADARGS=85;
+$USAGE = 'USAGE: '. basename($_SERVER['argv'][0]) .' "" /usr/bin/perl ./test.pl arg1 arg2' ."\n";
+if($_SERVER['argc'] >= 3) {
+	$bits = $_SERVER['argv'];
+	unset($bits[0], $bits[1]);
+	$testScript = implode(' ', $bits);
 }
+else {
+	echo $USAGE;
+	exit($E_BADARGS);
+}
+print_r($_SERVER['argv']);
+echo $testScript ."\n\n";
 
-set_exception_handler('exception_handler');
-
-//attempt to locate the __autoload.php script from cs-content...
 if(file_exists(dirname(__FILE__) .'/../cs-content/__autoload.php')) {
 	require_once(dirname(__FILE__) .'/../cs-content/__autoload.php');
 }
-
-//now try to find a couple of configs.
-$siteConfig = null;
-$configFile = null;
-$baseDir = dirname(__FILE__) .'/../..';
-$tryThese = array(
-	'rw/siteConfig.xml',
-	'rw/config.xml',
-	'config/siteConfig.xml',
-	'config/config.xml',
-	'conf/siteconfig.xml',
-	'conf/siteConfig.xml',
-	'conf/config.xml',
-);
-foreach($tryThese as $pathPart) {
-	if(file_exists($baseDir .'/'. $pathPart)) {
-		$configFile = $baseDir .'/'. $pathPart;
-		$siteConfig = new cs_siteConfig($configFile);
-		break;
-	}
-}
-if(is_null($siteConfig)) {
-	throw new exception("FATAL: unable to locate cs_siteConfig or a config file (". $configFile .")...");
-}
-
-#cs_global::debug_print($siteConfig->get_section('cs-clilogger'),1);
-
-
-if(!defined('LIBDIR') && isset($_ENV['LIBDIR'])) {
-	define('LIBDIR', $_ENV['LIBDIR']);
+else {
+	require_once(dirname(__FILE__) .'/../cs-multiproc/cs_SingleProcess.class.php');
 }
 
 
-if(!defined('LIBDIR')) {
-	throw new exception("failed to locate required 'LIBDIR' environment setting");
+$p = new cs_SingleProcess($testScript);
+
+$loops = 0;
+
+while($p->isActive()) {
+	
+	echo " ---------------- \n";
+	
+	$status = $p->getStatus();
+	$error = $p->getError();
+	$output = $p->listen();
+	
+	echo "  [". $loops ."] STATUS::: ". print_r($status, true) ."\n";
+	echo "  [". $loops ."] ERROR:::: ". $error ."\n";
+	echo "  [". $loops ."] OUTPUT::: ". $output ."\n";
+	#echo "SITREP::: status=(". $status ."), error=(". $error ."), OUTPUT::: ". $output ."\n\n";
+	sleep(1);
+	
+	$loops++;
+} 
+
+
+echo "FINAL STATUS: ". print_r($p->getStatus(),true) ."\n";
+echo "FINAL OUTPUT: ". $p->output ."\n";
+echo "FINAL OUTPUT (listen): ". $p->listen() ."\n";
+echo "FINAL ERROR: ". $p->error ."\n";
+echo "FINAL ERROR (getError): ". $p->getError() ."\n";
+
+print_r($p);
+
+if($loops >= $maxLoops) {
+	echo "TERMINATING TEST PROCESS... ";
+	$res = proc_terminate($p->process);
+	echo "Result=(". $res .")\n";
 }
-
-
-
-require_once(dirname(__FILE__) .'/cli_logger.class.php');
-require_once(dirname(__FILE__) .'/cli_scriptRunner.class.php');
-$obj = new cli_scriptRunner();
-?>
